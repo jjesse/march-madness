@@ -76,6 +76,7 @@ march-madness-tracker
 ## Environment Setup
 
 1. Create a `.env` file in the root directory:
+
    ```
    PORT=3000
    NODE_ENV=development
@@ -89,6 +90,7 @@ march-madness-tracker
    ```
 
 2. Start required services:
+
    ```bash
    # Start MongoDB
    sudo service mongod start
@@ -103,14 +105,19 @@ march-madness-tracker
 ## Installation
 
 1. Clone the repository:
+
    ```bash
    git clone <repository-url>
    ```
+
 2. Navigate to the project directory:
+
    ```bash
    cd march-madness-tracker
    ```
+
 3. Install the dependencies:
+
    ```bash
    npm install
    ```
@@ -142,7 +149,9 @@ npm run migrate:up
 ## Development
 
 ### Code Style
+
 This project uses ESLint and Prettier for code formatting:
+
 ```bash
 # Run linter
 npm run lint
@@ -152,6 +161,7 @@ npm run lint:fix
 ```
 
 ### Branch Strategy
+
 - `main`: Production-ready code
 - `develop`: Development branch
 - Feature branches: `feature/branch-name`
@@ -182,6 +192,7 @@ To use the NCAA API features:
 
 1. Obtain an API key from the NCAA developer portal
 2. Configure API settings in your `.env` file:
+
    ```
    NCAA_API_KEY=your-api-key-here
    NCAA_API_URL=https://api.ncaa.com/casablanca/march-madness
@@ -191,6 +202,7 @@ To use the NCAA API features:
    ```
 
 The system will automatically:
+
 - Cache responses for 5 minutes
 - Limit API requests to 30 per minute
 - Update more frequently during tournament hours
@@ -208,6 +220,7 @@ The application now supports:
 ## Running Tests
 
 To run the unit tests, use:
+
 ```bash
 npm test
 ```
@@ -217,10 +230,12 @@ npm test
 Common issues and solutions:
 
 - **Build fails**: Clear the dist folder and node_modules
+
   ```bash
   rm -rf dist node_modules
   npm install
   ```
+
 - **Tests timeout**: Increase the timeout in jest.config.js
 
 ## Contributing
