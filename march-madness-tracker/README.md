@@ -19,6 +19,17 @@ A modern, TypeScript-based web application for tracking and managing the NCAA Me
 - Real-time winner/loser tracking
 - Pick accuracy statistics
 - Master bracket comparison
+- Enhanced security headers using Helmet middleware
+- Request logging using Winston
+- Health check endpoint
+- Swagger API documentation
+- Rate limiting to prevent abuse
+- Response compression for improved performance
+- Request timeout handling
+- Detailed error handling
+- Graceful shutdown handling
+- MongoDB connection error handling
+- Prometheus metrics for monitoring
 
 ## Project Structure
 
@@ -245,3 +256,137 @@ Contributions are welcome! Please open an issue or submit a pull request for any
 ## License
 
 This project is licensed under the MIT License.
+
+## Endpoints
+
+- `/health`: Health check endpoint
+- `/api-docs`: Swagger API documentation
+- `/metrics`: Prometheus metrics endpoint
+
+## Setup
+
+### Prerequisites
+
+- Node.js
+- Docker and Docker Compose
+
+### Installation
+
+1. Clone the repository:
+
+    ```bash
+    git clone https://github.com/yourusername/march-madness-tracker.git
+    cd march-madness-tracker
+    ```
+
+2. Install dependencies:
+
+    ```bash
+    npm install
+    ```
+
+3. Create a `.env` file in the root directory and add the following environment variables:
+
+    ```env
+    NODE_ENV=development
+    PORT=3000
+    MONGODB_URI=mongodb://localhost:27017/march-madness
+    ```
+
+### Running the Application
+
+#### Using Node.js
+
+1. Start the application:
+
+    ```bash
+    npm start
+    ```
+
+2. Access the application at `http://localhost:3000`.
+
+#### Using Docker
+
+1. Build and start the containers:
+
+    ```bash
+    npm run docker:dev
+    ```
+
+2. Access the application at `http://localhost:3000`.
+
+### Testing
+
+Run tests using Jest:
+
+```bash
+npm test
+```
+
+### Linting
+
+Lint the code using ESLint:
+
+```bash
+npm run lint
+```
+
+### Documentation
+
+Generate API documentation using Typedoc:
+
+```bash
+npm run docs
+```
+
+## Dependencies
+
+- express
+- typescript
+- dotenv
+- cors
+- jsonwebtoken
+- bcryptjs
+- mongoose
+- passport
+- passport-jwt
+- ioredis
+- express-rate-limit
+- winston
+- class-validator
+- helmet
+- swagger-ui-express
+- swagger-jsdoc
+- migrate-mongo
+- class-transformer
+- prom-client
+- joi
+- axios
+- limiter
+- compression
+- connect-timeout
+
+## Dev Dependencies
+
+- ts-node
+- jest
+- @types/jest
+- @types/node
+- nodemon
+- eslint
+- @typescript-eslint/eslint-plugin
+- @typescript-eslint/parser
+- typedoc
+- @types/express
+- @types/cors
+- @types/jsonwebtoken
+- @types/bcryptjs
+- @types/passport
+- @types/passport-jwt
+- @types/mongoose
+- @types/ioredis
+- supertest
+- @types/prom-client
+- jest-mock-extended
+- @types/compression
+- @types/connect-timeout

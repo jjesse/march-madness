@@ -12,7 +12,7 @@
     "lint": "eslint . --ext .ts",
     "lint:fix": "eslint . --ext .ts --fix",
     "docs": "typedoc --out docs src",
-    "docker:dev": "docker-compose up",
+    "docker:dev": "docker-compose up --build",
     "migrate:create": "migrate-mongo create",
     "migrate:up": "migrate-mongo up",
     "migrate:down": "migrate-mongo down"

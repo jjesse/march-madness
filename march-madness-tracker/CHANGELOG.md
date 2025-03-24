@@ -31,6 +31,8 @@
 - Prometheus metrics for monitoring
 - Detailed request duration tracking
 - Metrics endpoint at /metrics
+- Dockerfile for containerizing the application
+- docker-compose.yml for multi-container setup with MongoDB
 
 ### Security
 
@@ -55,3 +57,4 @@
 - Added winston for logging
 - Added corresponding TypeScript type definitions
 - Added prom-client for monitoring and metrics
+- Added Docker and Docker Compose configurations

@@ -6,23 +6,21 @@ services:
     ports:
       - "3000:3000"
     environment:
-      - MONGODB_URI=mongodb://mongodb:27017/march-madness
-      - REDIS_URL=redis://redis:6379
+      - NODE_ENV=development
+      - PORT=3000
+      - MONGODB_URI=mongodb://mongo:27017/march-madness
     depends_on:
-      - mongodb
-      - redis
+      - mongo
+    volumes:
+      - .:/usr/src/app
+      - /usr/src/app/node_modules
 
-  mongodb:
-    image: mongo:5
+  mongo:
+    image: mongo:4.4
     ports:
       - "27017:27017"
     volumes:
-      - mongodb_data:/data/db
-
-  redis:
-    image: redis:alpine
-    ports:
-      - "6379:6379"
+      - mongo-data:/data/db
 
 volumes:
-  mongodb_data:
+  mongo-data:
