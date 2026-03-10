@@ -54,7 +54,12 @@ app.use(helmet({
             scriptSrc: ["'self'", "'unsafe-inline'"],
             styleSrc: ["'self'", "'unsafe-inline'"],
             imgSrc: ["'self'", "data:", "https:"],
-            connectSrc: ["'self'", "https://api.ncaa.com"]
+            connectSrc: [
+                "'self'", 
+                "https://site.api.espn.com",  // ESPN unofficial API
+                "https://api.sportradar.com", // SportsRadar API
+                "https://api.sportradar.us"   // SportsRadar US API
+            ]
         }
     },
     hsts: {

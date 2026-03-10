@@ -96,8 +96,13 @@ march-madness-tracker
    JWT_SECRET=your-secret-key
    API_URL=http://localhost:3000/api
    LOG_LEVEL=info
-   NCAA_API_KEY=your-api-key-here
-   NCAA_API_URL=https://api.ncaa.com/casablanca/march-madness
+   
+   # Data Source Configuration (see "Data Sources" section below)
+   # Note: NCAA does not provide a public API
+   DATA_SOURCE_TYPE=mock  # Options: mock, espn, sportsradar, manual
+   ESPN_API_URL=https://site.api.espn.com/apis/site/v2/sports/basketball/mens-college-basketball/scoreboard
+   SPORTSRADAR_API_KEY=your-sportsradar-key-here
+   NCAA_UPDATE_INTERVAL=60000
    ```
 
 2. Start required services:
@@ -199,23 +204,69 @@ The application integrates with the NCAA's official API to provide real-time tou
 - Exponential backoff for failed requests
 - Redis caching to minimize API calls
 
-To use the NCAA API features:
+## Data Sources
 
-1. Obtain an API key from the NCAA developer portal
-2. Configure API settings in your `.env` file:
+**Important: The NCAA does not provide a public API for March Madness data.**
 
-   ```
-   NCAA_API_KEY=your-api-key-here
-   NCAA_API_URL=https://api.ncaa.com/casablanca/march-madness
-   NCAA_UPDATE_INTERVAL=60000
+This application supports multiple data source options:
+
+### 1. Mock Data (Development)
+
+For development and testing:
+
+```env
+DATA_SOURCE_TYPE=mock
+```
+
+Use pre-populated sample tournament data. Ideal for development and testing.
+
+### 2. ESPN Unofficial API (Free, No Key Required)
+
+ESPN provides unofficial endpoints that can be used:
+
+```env
+DATA_SOURCE_TYPE=espn
+ESPN_API_URL=https://site.api.espn.com/apis/site/v2/sports/basketball/mens-college-basketball/scoreboard
+```
+
+**Note:** ESPN's API is unofficial and not guaranteed to remain available. Use at your own risk.
+
+### 3. SportsRadar API (Commercial)
+
+Professional-grade sports data with official NCAA tournament coverage:
+
+1. Sign up at [SportsRadar](https://developer.sportradar.com/)
+2. Subscribe to NCAA Men's Basketball coverage
+3. Configure:
+
+   ```env
+   DATA_SOURCE_TYPE=sportsradar
+   SPORTSRADAR_API_KEY=your-api-key-here
+   SPORTSRADAR_API_URL=https://api.sportradar.us/ncaamb/trial/v7/en
    NCAA_MAX_REQUESTS_PER_MINUTE=30
    NCAA_CACHE_TTL=300
    ```
 
+### 4. Manual Data Entry
+
+For complete control:
+
+```env
+DATA_SOURCE_TYPE=manual
+```
+
+Manually seed and update game results through admin endpoints.
+
+### Alternative Data Sources
+
+- **The Sports DB** - Free API with limited tournament data
+- **Web Scraping** - NCAA.com or ESPN.com (check terms of service)
+- **Odds Provider APIs** - Many sports betting APIs include NCAA data
+
 The system will automatically:
 
 - Cache responses for 5 minutes
-- Limit API requests to 30 per minute
+- Limit API requests based on provider limits
 - Update more frequently during tournament hours
 - Handle rate limits and errors gracefully
 

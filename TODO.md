@@ -18,24 +18,24 @@ A prioritized list of everything remaining to make the application fully functio
 ## 🟠 High Priority — Core Features
 
 ### Authentication & Users
-- [ ] Implement **user registration** endpoint (`POST /api/users/register`) with password hashing via bcryptjs.
-- [ ] Implement **user login** endpoint (`POST /api/users/login`) that issues a signed JWT.
-- [ ] Implement **token refresh** or logout endpoint.
-- [ ] Implement **change password** endpoint (authenticated).
-- [ ] Implement **get / update user profile** endpoint (authenticated).
-- [ ] Add input validation (email format, password strength) to all user endpoints.
+- [x] Implement **user registration** endpoint (`POST /api/users/register`) with password hashing via bcryptjs.
+- [x] Implement **user login** endpoint (`POST /api/users/login`) that issues a signed JWT.
+- [x] Implement **token refresh** or logout endpoint.
+- [x] Implement **change password** endpoint (authenticated).
+- [x] Implement **get / update user profile** endpoint (authenticated).
+- [x] Add input validation (email format, password strength) to all user endpoints.
 
 ### Bracket Routes
-- [ ] Implement `POST /api/brackets` — create a new bracket for the authenticated user.
-- [ ] Implement `GET /api/brackets` — list all brackets owned by the authenticated user.
-- [ ] Implement `GET /api/brackets/:id` — get a single bracket.
-- [ ] Implement `PUT /api/brackets/:id` — update picks in a bracket.
-- [ ] Implement `DELETE /api/brackets/:id` — delete a bracket.
-- [ ] Enforce ownership checks so users can only modify their own brackets.
+- [x] Implement `POST /api/brackets` — create a new bracket for the authenticated user.
+- [x] Implement `GET /api/brackets` — list all brackets owned by the authenticated user.
+- [x] Implement `GET /api/brackets/:id` — get a single bracket.
+- [x] Implement `PUT /api/brackets/:id` — update picks in a bracket.
+- [x] Implement `DELETE /api/brackets/:id` — delete a bracket.
+- [x] Enforce ownership checks so users can only modify their own brackets.
 
 ### Models
-- [ ] Convert `src/models/team.ts` from a bare TypeScript interface to a proper Mongoose schema/model so teams can be persisted.
-- [ ] Convert `src/models/tournament.ts` from a bare TypeScript interface to a proper Mongoose schema/model; fix the missing `GameModel` import.
+- [x] Convert `src/models/team.ts` from a bare TypeScript interface to a proper Mongoose schema/model so teams can be persisted.
+- [x] Convert `src/models/tournament.ts` from a bare TypeScript interface to a proper Mongoose schema/model; fix the missing `GameModel` import.
 
 ---
 
@@ -53,6 +53,14 @@ A prioritized list of everything remaining to make the application fully functio
 - [ ] Add `.prettierrc` if Prettier is intended (README mentions it alongside ESLint).
 - [ ] Verify that `tsconfig.json` `outDir` and `rootDir` settings are correct for the build output.
 - [ ] Verify that `jest` and `ts-jest` (or `babel-jest`) are listed in `devDependencies` inside `package.json` and install them if missing.
+
+### Data Source Implementation
+- [ ] **Implement mock data adapter** — Create sample tournament data for development/testing (highest priority for working app).
+- [ ] **Implement ESPN adapter** — Parse ESPN's unofficial API responses for live game data.
+- [ ] **Implement SportsRadar adapter** — Integrate with SportsRadar API (requires paid subscription).
+- [ ] **Implement manual data entry endpoints** — Admin routes to manually seed and update tournament data.
+- [ ] Add data source adapter factory pattern to switch between sources based on `DATA_SOURCE_TYPE` config.
+- [ ] Update `MasterBracketService.updateMasterBracket()` to use the configured adapter instead of hardcoded API calls.
 
 ### Database Migrations
 - [ ] Create an initial migration that sets up indexes for `users`, `brackets`, `games`, and `scoreboard` collections.

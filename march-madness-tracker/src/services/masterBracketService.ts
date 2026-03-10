@@ -5,11 +5,26 @@ import { Game } from '../models/game';
 import { AppError } from '../types/errors';
 import { RateLimiter } from 'limiter';
 
+/**
+ * MasterBracketService - Manages official tournament results
+ * 
+ * IMPORTANT: The NCAA does not provide a public API for March Madness data.
+ * This service is designed to work with multiple data sources:
+ * 
+ * 1. Mock data (for development)
+ * 2. ESPN unofficial API (free but unsupported)
+ * 3. SportsRadar API (commercial, requires subscription)
+ * 4. Manual data entry through admin endpoints
+ * 
+ * Configure your data source via the DATA_SOURCE_TYPE environment variable.
+ * See README.md for detailed setup instructions for each option.
+ */
 export class MasterBracketService {
     private readonly CACHE_KEY = 'master_bracket';
     private readonly CACHE_TTL = 300; // 5 minutes
-    private readonly API_KEY = process.env.NCAA_API_KEY;
-    private readonly API_URL = 'https://api.ncaa.com/casablanca/march-madness';
+    private readonly API_KEY = process.env.SPORTSRADAR_API_KEY || process.env.NCAA_API_KEY;
+    private readonly DATA_SOURCE = process.env.DATA_SOURCE_TYPE || 'mock';
+    private readonly API_URL = this.getApiUrl();
     private readonly UPDATE_INTERVAL = process.env.NCAA_UPDATE_INTERVAL || 60000; // 1 minute default
     private readonly MAX_RETRIES = 3;
     private readonly BASE_DELAY = 1000; // 1 second
@@ -26,6 +41,22 @@ export class MasterBracketService {
             interval: 'minute'
         });
         this.startPolling();
+    }
+
+    private getApiUrl(): string {
+        const dataSource = process.env.DATA_SOURCE_TYPE || 'mock';
+        
+        switch (dataSource) {
+            case 'espn':
+                return process.env.ESPN_API_URL || 'https://site.api.espn.com/apis/site/v2/sports/basketball/mens-college-basketball/scoreboard';
+            case 'sportsradar':
+                return process.env.SPORTSRADAR_API_URL || 'https://api.sportradar.us/ncaamb/trial/v7/en';
+            case 'manual':
+                return 'manual'; // No external API
+            case 'mock':
+            default:
+                return 'mock'; // Use mock data
+        }
     }
 
     private async startPolling(): Promise<void> {
