@@ -1,5 +1,5 @@
 import { Scoreboard, ScoreboardModel } from '../models/scoreboard';
-import { BracketModel } from '../models/bracket';
+import { BracketModel, Bracket } from '../models/bracket';
 import { GameModel } from '../models/game';
 import { MetricsService } from './metricsService';
 import { AppError } from '../types/errors';
@@ -16,12 +16,15 @@ export class ScoreboardService {
     };
 
     constructor(
-        private readonly metricsService: MetricsService,
-        private readonly masterBracketService: MasterBracketService
+        private readonly metricsService: MetricsService = new MetricsService(),
+        private readonly masterBracketService?: MasterBracketService
     ) {}
 
     async updateUserScore(bracketId: string, userId: string): Promise<ScoreboardModel> {
         try {
+            if (!this.masterBracketService) {
+                throw new AppError(500, 'MasterBracketService not configured');
+            }
             const [userBracket, masterBracket] = await Promise.all([
                 Bracket.findById(bracketId).populate('games'),
                 this.masterBracketService.getMasterBracket()
@@ -83,6 +86,9 @@ export class ScoreboardService {
     }
 
     async getPickStatus(bracketId: string): Promise<Array<{gameId: string, status: string, pick: string, actual: string}>> {
+        if (!this.masterBracketService) {
+            throw new AppError(500, 'MasterBracketService not configured');
+        }
         const [bracket, masterBracket] = await Promise.all([
             Bracket.findById(bracketId).populate('games'),
             this.masterBracketService.getMasterBracket()

@@ -1,4 +1,4 @@
-import express from 'express';
+import express, { Request, Response, NextFunction } from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import mongoose from 'mongoose';
@@ -159,7 +159,7 @@ app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
     
     res.status(500).json({ 
         error: 'Something went wrong',
-        id: req.id // Add request ID for tracking
+        id: (req as any).id // Add request ID for tracking
     });
 });
 
