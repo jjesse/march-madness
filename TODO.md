@@ -6,12 +6,12 @@ A prioritized list of everything remaining to make the application fully functio
 
 ## 🔴 Critical — App Will Not Start Without These
 
-- [ ] **Create `src/config/passport.ts`** — Passport JWT strategy is imported by `app.ts` but the file does not exist. The server crashes on startup without it.
-- [ ] **Create `src/routes/bracket.routes.ts`** — Imported by `app.ts`; bracket CRUD endpoints are completely missing.
-- [ ] **Create `src/routes/user.routes.ts`** — Imported by `app.ts`; user authentication and profile endpoints are completely missing.
-- [ ] **Fix error-handler middleware imports in `app.ts`** — The global error handler references `Request`, `Response`, and `NextFunction` from Express but does not import them; `req.id` is also referenced without being set.
-- [ ] **Fix missing imports in `src/routes/scoreboard.routes.ts`** — `Scoreboard`, `Bracket`, and `auth` middleware are used but not imported.
-- [ ] **Fix missing `Bracket` model import in `src/services/scoreboardService.ts`**.
+- [x] **Create `src/config/passport.ts`** — Passport JWT strategy is imported by `app.ts` but the file does not exist. The server crashes on startup without it.
+- [x] **Create `src/routes/bracket.routes.ts`** — Imported by `app.ts`; bracket CRUD endpoints are completely missing.
+- [x] **Create `src/routes/user.routes.ts`** — Imported by `app.ts`; user authentication and profile endpoints are completely missing.
+- [x] **Fix error-handler middleware imports in `app.ts`** — The global error handler references `Request`, `Response`, and `NextFunction` from Express but does not import them; `req.id` is also referenced without being set.
+- [x] **Fix missing imports in `src/routes/scoreboard.routes.ts`** — `Scoreboard`, `Bracket`, and `auth` middleware are used but not imported.
+- [x] **Fix missing `Bracket` model import in `src/services/scoreboardService.ts`**.
 
 ---
 

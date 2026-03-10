@@ -1,5 +1,6 @@
 import express from 'express';
 import { ScoreboardService } from '../services/scoreboardService';
+import { Scoreboard } from '../models/scoreboard';
 import { auth } from '../middleware/auth';
 
 const router = express.Router();
