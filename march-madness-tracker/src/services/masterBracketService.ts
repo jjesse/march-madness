@@ -1,6 +1,6 @@
 import axios from 'axios';
 import { Redis } from 'ioredis';
-import { BracketModel } from '../models/bracket';
+import { Bracket, BracketModel } from '../models/bracket';
 import { Game } from '../models/game';
 import { AppError } from '../types/errors';
 import { RateLimiter } from 'limiter';
@@ -35,16 +35,17 @@ export class MasterBracketService {
         }
 
         // Different intervals based on game status
-        const getPollingInterval = () => {
+        const getPollingInterval = (): number => {
             const now = new Date();
             const hour = now.getHours();
             
             // During active game hours (typically afternoon/evening during tournament)
             if (hour >= 12 && hour <= 23) {
-                return this.UPDATE_INTERVAL;
+                return typeof this.UPDATE_INTERVAL === 'number' ? this.UPDATE_INTERVAL : parseInt(this.UPDATE_INTERVAL);
             }
             // Early morning hours - less frequent updates
-            return this.UPDATE_INTERVAL * 6;
+            const interval = typeof this.UPDATE_INTERVAL === 'number' ? this.UPDATE_INTERVAL : parseInt(this.UPDATE_INTERVAL);
+            return interval * 6;
         };
 
         this.updateTimer = setInterval(async () => {
@@ -117,7 +118,7 @@ export class MasterBracketService {
     }
 
     private async saveMasterBracket(data: any): Promise<BracketModel> {
-        const games = data.games.map(game => new Game({
+        const games = data.games.map((game: any) => new Game({
             teamA: game.team1.name,
             teamB: game.team2.name,
             scoreA: game.team1.score,
@@ -131,7 +132,7 @@ export class MasterBracketService {
             startTime: new Date(game.startTime)
         }));
 
-        const masterBracket = new BracketModel({
+        const masterBracket = new Bracket({
             name: 'Official Tournament Results',
             userId: 'system',
             year: new Date().getFullYear(),

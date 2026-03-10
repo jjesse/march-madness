@@ -6,7 +6,7 @@ import { AppError } from '../types/errors';
 import { MasterBracketService } from './masterBracketService';
 
 export class ScoreboardService {
-    private readonly POINTS_PER_ROUND = {
+    private readonly POINTS_PER_ROUND: { [key: number]: number } = {
         1: 1,  // First Round
         2: 2,  // Second Round
         3: 4,  // Sweet 16
@@ -94,11 +94,14 @@ export class ScoreboardService {
             this.masterBracketService.getMasterBracket()
         ]);
 
+        if (!bracket) {
+            throw new AppError(404, 'Bracket not found');
+        }
         return bracket.games.map(game => {
             const masterGame = masterBracket.games.find(g => g.id === game.id);
             return {
                 gameId: game.id,
-                status: game.pickStatus,
+                status: game.pickStatus || 'pending',
                 pick: game.userPick ? `${game.userPick} (${game.pickStatus})` : 'No pick',
                 actual: masterGame?.winnerName || 'Not completed'
             };

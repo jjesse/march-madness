@@ -17,8 +17,9 @@ router.get('/', async (req, res) => {
         const year = req.query.year ? Number(req.query.year) : undefined;
         const leaderboard = await scoreboardService.getLeaderboard(year);
         res.json(leaderboard);
-    } catch (error) {
-        res.status(500).json({ error: error.message });
+    } catch (error: unknown) {
+        const message = error instanceof Error ? error.message : 'Unknown error';
+        res.status(500).json({ error: message });
     }
 });
 
@@ -30,12 +31,16 @@ router.get('/', async (req, res) => {
  */
 router.get('/user', auth, async (req, res) => {
     try {
+        if (!req.user) {
+            return res.status(401).json({ error: 'Unauthorized' });
+        }
         const scores = await Scoreboard.find({ userId: req.user.id })
             .sort({ year: -1 })
             .populate('bracketId');
         res.json(scores);
-    } catch (error) {
-        res.status(500).json({ error: error.message });
+    } catch (error: unknown) {
+        const message = error instanceof Error ? error.message : 'Unknown error';
+        res.status(500).json({ error: message });
     }
 });
 

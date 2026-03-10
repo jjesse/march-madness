@@ -2,14 +2,15 @@ import { TournamentModel } from '../models/tournament';
 import { Redis } from 'ioredis';
 
 export class TournamentService {
-    private tournamentData: TournamentModel;
+    private tournamentData: TournamentModel | undefined;
     private apiUrl: string;
     private cache: Redis;
     private readonly CACHE_TTL = 300; // 5 minutes
 
     constructor(apiUrl: string) {
         this.apiUrl = apiUrl;
-        this.cache = new Redis(process.env.REDIS_URL);
+        const redisUrl = process.env.REDIS_URL || 'redis://localhost:6379';
+        this.cache = new Redis(redisUrl);
     }
 
     public async fetchTournamentData(): Promise<TournamentModel> {
@@ -25,16 +26,18 @@ export class TournamentService {
                 throw new Error(`HTTP error! status: ${response.status}`);
             }
             
-            this.tournamentData = await response.json();
+            const data: TournamentModel = await response.json();
+            this.tournamentData = data;
             
             // Cache the result
-            await this.cache.setex('tournament', this.CACHE_TTL, JSON.stringify(this.tournamentData));
+            await this.cache.setex('tournament', this.CACHE_TTL, JSON.stringify(data));
             
-            return this.tournamentData;
-        } catch (error) {
+            return data;
+        } catch (error: unknown) {
             // Add logging
             console.error('Tournament fetch error:', error);
-            throw new Error(`Failed to fetch tournament data: ${error.message}`);
+            const message = error instanceof Error ? error.message : 'Unknown error';
+            throw new Error(`Failed to fetch tournament data: ${message}`);
         }
     }
 
@@ -48,9 +51,11 @@ export class TournamentService {
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`);
             }
-            this.tournamentData = await response.json();
-        } catch (error) {
-            throw new Error(`Failed to update tournament data: ${error.message}`);
+            const data: TournamentModel = await response.json();
+            this.tournamentData = data;
+        } catch (error: unknown) {
+            const message = error instanceof Error ? error.message : 'Unknown error';
+            throw new Error(`Failed to update tournament data: ${message}`);
         }
     }
 }

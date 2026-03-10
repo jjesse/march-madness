@@ -64,7 +64,9 @@
     "supertest": "^6.0.0",
     "jest-mock-extended": "^2.0.4",
     "@types/compression": "^1.7.5",
-    "@types/connect-timeout": "^0.0.37"
+    "@types/connect-timeout": "^0.0.37",
+    "@types/swagger-ui-express": "^4.1.6",
+    "@types/swagger-jsdoc": "^6.0.4"
   },
   "author": "Your Name",
   "license": "MIT"

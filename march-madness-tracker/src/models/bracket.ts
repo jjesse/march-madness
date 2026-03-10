@@ -1,7 +1,7 @@
 import mongoose from 'mongoose';
 import { GameModel } from './game';
 
-export interface BracketModel {
+export interface BracketModel extends mongoose.Document {
     id: string;
     name: string;
     userId: string;
@@ -9,6 +9,7 @@ export interface BracketModel {
     games: GameModel[];
     totalPoints: number;
     isPublic: boolean;
+    isMaster?: boolean;
 }
 
 const bracketSchema = new mongoose.Schema({
@@ -17,7 +18,8 @@ const bracketSchema = new mongoose.Schema({
     year: { type: Number, required: true },
     games: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Game' }],
     totalPoints: { type: Number, default: 0 },
-    isPublic: { type: Boolean, default: false }
+    isPublic: { type: Boolean, default: false },
+    isMaster: { type: Boolean, default: false }
 });
 
 export const Bracket = mongoose.model<BracketModel>('Bracket', bracketSchema);

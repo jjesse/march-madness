@@ -1,5 +1,5 @@
 import { BracketModel, Bracket } from '../models/bracket';
-import { GameModel } from '../models/game';
+import { GameModel, GameStatus } from '../models/game';
 import { TournamentModel } from '../models/tournament';
 
 export class BracketService {
@@ -19,7 +19,7 @@ export class BracketService {
         return this.games.find(game => game.id === gameId);
     }
 
-    updateGameStatus(gameId: string, status: string): void {
+    updateGameStatus(gameId: string, status: GameStatus): void {
         const game = this.getGameData(gameId);
         if (game) {
             game.status = status;

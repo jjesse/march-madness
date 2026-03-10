@@ -88,7 +88,7 @@ app.use(timeout('5s'));
 
 // Initialize Prometheus metrics
 const collectDefaultMetrics = promClient.collectDefaultMetrics;
-collectDefaultMetrics({ timeout: 5000 });
+collectDefaultMetrics({ prefix: 'march_madness_' });
 
 // Create a custom histogram metric
 const httpRequestDurationMicroseconds = new promClient.Histogram({

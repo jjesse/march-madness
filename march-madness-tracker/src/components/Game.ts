@@ -1,5 +1,7 @@
 // filepath: /march-madness-tracker/march-madness-tracker/src/components/Game.ts
 
+import { Team } from './Team';
+
 export class Game {
     private teamA: string;
     private teamB: string;
@@ -7,9 +9,9 @@ export class Game {
     private scoreB: number;
     private status: 'upcoming' | 'in-progress' | 'completed';
 
-    constructor(teamA: string, teamB: string) {
-        this.teamA = teamA;
-        this.teamB = teamB;
+    constructor(teamA: string | Team, teamB: string | Team) {
+        this.teamA = typeof teamA === 'string' ? teamA : teamA.name;
+        this.teamB = typeof teamB === 'string' ? teamB : teamB.name;
         this.scoreA = 0;
         this.scoreB = 0;
         this.status = 'upcoming';

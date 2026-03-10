@@ -12,6 +12,7 @@ export interface GameModel extends mongoose.Document {
     round: number;
     region: string;
     winnerId?: string;
+    winnerName?: string;
     startTime: Date;
     bracketId: mongoose.Types.ObjectId;
     userPick?: string;
@@ -35,6 +36,7 @@ const gameSchema = new mongoose.Schema({
     round: Number,
     region: String,
     winnerId: String,
+    winnerName: String,
     startTime: Date,
     bracketId: {
         type: mongoose.Schema.Types.ObjectId,
