@@ -1,3 +1,4 @@
+/// <reference path="../types/express.d.ts" />
 import express from 'express';
 import { Bracket } from '../models/bracket';
 import { auth } from '../middleware/auth';

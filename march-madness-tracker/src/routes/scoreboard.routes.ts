@@ -1,3 +1,4 @@
+/// <reference path="../types/express.d.ts" />
 import express from 'express';
 import { ScoreboardService } from '../services/scoreboardService';
 import { Scoreboard } from '../models/scoreboard';

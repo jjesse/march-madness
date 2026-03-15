@@ -1,3 +1,4 @@
+/// <reference path="../types/express.d.ts" />
 import express from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
