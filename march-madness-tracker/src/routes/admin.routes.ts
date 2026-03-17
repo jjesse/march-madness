@@ -46,49 +46,6 @@ router.post('/sync/bracket', async (req, res) => {
 
 /**
  * @swagger
- * /api/admin/sync/scores:
- *   post:
- *     summary: Manually trigger a live scores sync from ESPN
- *     tags: [Admin]
- *     security:
- *       - bearerAuth: []
- *     parameters:
- *       - in: query
- *         name: date
- *         schema:
- *           type: string
- *         description: Date in YYYYMMDD format (optional, defaults to today)
- *     responses:
- *       200:
- *         description: Scores sync completed successfully
- *       500:
- *         description: Scores sync failed
- */
-router.post('/sync/scores', async (req, res) => {
-    try {
-        const date = req.query.date as string | undefined;
-        
-        logger.info(`Manual scores sync triggered by user ${req.user?.id} for date: ${date || 'today'}`);
-        
-        await ingestionService.syncLiveScores(date);
-        
-        res.json({ 
-            success: true, 
-            message: 'Live scores sync completed successfully',
-            timestamp: new Date().toISOString(),
-            date: date || 'today'
-        });
-    } catch (error) {
-        logger.error('Manual scores sync failed:', error);
-        res.status(500).json({ 
-            success: false,
-            error: error instanceof Error ? error.message : 'Unknown error' 
-        });
-    }
-});
-
-/**
- * @swagger
  * /api/admin/sync/status:
  *   get:
  *     summary: Get the current sync status and last sync time
@@ -106,7 +63,7 @@ router.get('/sync/status', async (req, res) => {
             success: true,
             message: 'Sync status endpoint',
             timestamp: new Date().toISOString(),
-            info: 'Bracket and score syncs are available via POST endpoints'
+            info: 'Daily bracket sync runs at 6:00 AM, includes final scores for completed games'
         });
     } catch (error) {
         res.status(500).json({ 
