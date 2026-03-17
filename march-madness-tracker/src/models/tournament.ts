@@ -5,7 +5,7 @@ import { GameModel } from './game';
 export interface TournamentModel extends mongoose.Document {
     year: number;
     name: string;
-    games: GameModel[];
+    games: mongoose.Types.ObjectId[];
     status: 'upcoming' | 'in-progress' | 'completed';
     startDate: Date;
     endDate: Date;
