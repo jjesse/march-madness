@@ -1,6 +1,7 @@
 import { BracketModel, Bracket } from '../models/bracket';
-import { GameModel, GameStatus } from '../models/game';
+import { GameModel, GameStatus, Game } from '../models/game';
 import { TournamentModel } from '../models/tournament';
+import mongoose from 'mongoose';
 
 export class BracketService {
     private games: GameModel[] = [];
@@ -8,7 +9,13 @@ export class BracketService {
 
     constructor(tournament: TournamentModel) {
         this.tournament = tournament;
-        this.games = tournament.games;
+        // Games will need to be populated separately or loaded via loadGames()
+    }
+
+    async loadGames(): Promise<void> {
+        // Populate the games from the tournament's game references
+        const populatedTournament = await this.tournament.populate('games');
+        this.games = populatedTournament.games as unknown as GameModel[];
     }
 
     addGame(game: GameModel): void {
