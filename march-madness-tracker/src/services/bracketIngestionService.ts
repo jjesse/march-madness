@@ -6,94 +6,23 @@ import { Team } from '../models/team';
 import { Game } from '../models/game';
 import mongoose from 'mongoose';
 
-interface ESPNTeam {
-    id: string;
-    uid: string;
-    location: string;
-    name: string;
-    displayName: string;
-    abbreviation: string;
-    logo?: string;
-    seed?: number;
-}
-
-interface ESPNCompetitor {
-    id: string;
-    uid: string;
-    type: string;
-    order: number;
-    homeAway: string;
-    winner: boolean;
-    team: ESPNTeam;
-    score?: string;
-}
-
-interface ESPNGame {
-    id: string;
-    uid: string;
-    date: string;
-    name: string;
-    shortName: string;
-    season: {
-        year: number;
-        type: number;
-    };
-    competitors: ESPNCompetitor[];
-    status: {
-        type: {
-            id: string;
-            name: string;
-            state: string;
-            completed: boolean;
-            description: string;
-            detail: string;
-            shortDetail: string;
-        };
-    };
-    round?: number;
-    region?: string;
-}
-
-interface ESPNBracketResponse {
-    season: {
-        year: number;
-        type: number;
-        name: string;
-    };
-    bracket: {
-        rounds: Array<{
-            number: number;
-            name: string;
-            games: ESPNGame[];
-        }>;
-    };
-}
-
 export class BracketIngestionService {
-    private readonly ESPN_BRACKET_URL = 'https://site.api.espn.com/apis/v2/sports/basketball/mens-college-basketball/tournament/1/bracket';
     private readonly ESPN_SCOREBOARD_URL = 'https://site.api.espn.com/apis/site/v2/sports/basketball/mens-college-basketball/scoreboard';
+    // Tournament dates: March Madness typically runs from Selection Sunday to Final
+    private readonly TOURNAMENT_START_DATE = new Date(Date.UTC(2026, 2, 15)); // March 15, 2026
+    private readonly TOURNAMENT_END_DATE = new Date(Date.UTC(2026, 3, 10)); // April 10, 2026
     
     constructor() {}
 
     /**
-     * Fetch and sync the entire tournament bracket from ESPN
+     * Fetch and sync the entire tournament bracket from ESPN using scoreboard API
      */
     public async syncBracket(): Promise<void> {
         try {
-            logger.info('Starting bracket sync from ESPN API');
+            logger.info('Starting bracket sync from ESPN Scoreboard API');
             
-            const response = await axios.get<ESPNBracketResponse>(this.ESPN_BRACKET_URL, {
-                timeout: 10000,
-                headers: {
-                    'User-Agent': 'March-Madness-Tracker/1.0'
-                }
-            });
-
-            const bracketData = response.data;
-            const year = bracketData.season.year;
-
-            logger.info(`Fetched bracket data for year ${year}`);
-
+            const year = 2026;
+            
             // Find or create tournament
             let tournament = await Tournament.findOne({ year });
             
@@ -102,31 +31,38 @@ export class BracketIngestionService {
                     year,
                     name: `NCAA Men's Basketball Tournament ${year}`,
                     status: 'upcoming',
-                    startDate: new Date(Date.UTC(year, 2, 18)), // March 18
-                    endDate: new Date(Date.UTC(year, 3, 8)), // April 8
+                    startDate: this.TOURNAMENT_START_DATE,
+                    endDate: this.TOURNAMENT_END_DATE,
                     games: []
                 });
                 await tournament.save();
                 logger.info(`Created new tournament for year ${year}`);
             }
 
-            // Process all rounds and games
+            // Fetch games for the entire tournament period
             const allGames: mongoose.Types.ObjectId[] = [];
+            const dateRange = this.getDateRange(this.TOURNAMENT_START_DATE, this.TOURNAMENT_END_DATE);
             
-            for (const round of bracketData.bracket.rounds) {
-                logger.info(`Processing round ${round.number}: ${round.name}`);
+            logger.info(`Fetching games for ${dateRange.length} days of the tournament`);
+            
+            for (const date of dateRange) {
+                const dateStr = this.formatDate(date);
+                logger.info(`Fetching games for ${dateStr}`);
                 
-                for (const espnGame of round.games) {
-                    const gameId = await this.processGame(espnGame, round.number, tournament._id);
-                    if (gameId) {
-                        allGames.push(gameId);
-                    }
+                try {
+                    const gamesForDate = await this.fetchGamesForDate(dateStr, tournament._id);
+                    allGames.push(...gamesForDate);
+                    
+                    // Small delay to avoid rate limiting
+                    await new Promise(resolve => setTimeout(resolve, 200));
+                } catch (error) {
+                    logger.warn(`Failed to fetch games for ${dateStr}:`, error);
                 }
             }
 
             // Update tournament with all games
             tournament.games = allGames;
-            tournament.status = this.determineTournamentStatus(bracketData);
+            tournament.status = await this.determineTournamentStatusFromGames(allGames);
             await tournament.save();
 
             logger.info(`Bracket sync completed successfully. Synced ${allGames.length} games.`);
@@ -134,6 +70,47 @@ export class BracketIngestionService {
             logger.error('Error syncing bracket from ESPN:', error);
             throw new Error(`Bracket sync failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
         }
+    }
+
+    /**
+     * Fetch games for a specific date
+     */
+    private async fetchGamesForDate(date: string, tournamentId: mongoose.Types.ObjectId): Promise<mongoose.Types.ObjectId[]> {
+        const url = `${this.ESPN_SCOREBOARD_URL}?dates=${date}`;
+        
+        const response = await axios.get(url, {
+            timeout: 10000,
+            headers: {
+                'User-Agent': 'March-Madness-Tracker/1.0'
+            }
+        });
+
+        const events = response.data.events || [];
+        const gameIds: mongoose.Types.ObjectId[] = [];
+        
+        for (const event of events) {
+            const gameId = await this.processScoreboardEvent(event, tournamentId);
+            if (gameId) {
+                gameIds.push(gameId);
+            }
+        }
+        
+        return gameIds;
+    }
+
+    /**
+     * Generate date range between start and end dates
+     */
+    private getDateRange(startDate: Date, endDate: Date): Date[] {
+        const dates: Date[] = [];
+        const currentDate = new Date(startDate);
+        
+        while (currentDate <= endDate) {
+            dates.push(new Date(currentDate));
+            currentDate.setDate(currentDate.getDate() + 1);
+        }
+        
+        return dates;
     }
 
     /**
@@ -167,55 +144,56 @@ export class BracketIngestionService {
     }
 
     /**
-     * Process a single game from ESPN data
+     * Process a single event from ESPN scoreboard data
      */
-    private async processGame(
-        espnGame: ESPNGame, 
-        round: number, 
+    private async processScoreboardEvent(
+        event: any,
         tournamentId: mongoose.Types.ObjectId
     ): Promise<mongoose.Types.ObjectId | null> {
         try {
-            const competitors = espnGame.competitors;
+            const gameId = event.id;
+            const competition = event.competitions[0];
             
-            if (competitors.length !== 2) {
-                logger.warn(`Game ${espnGame.id} does not have exactly 2 competitors, skipping`);
+            if (!competition || competition.competitors.length !== 2) {
+                logger.warn(`Event ${gameId} does not have valid competition data, skipping`);
                 return null;
             }
 
-            // Get team data
+            const competitors = competition.competitors;
+            
+            // Get team data (competitors[0] is home, competitors[1] is away)
             const team1 = competitors[0].team;
             const team2 = competitors[1].team;
 
             // Ensure teams exist in database
-            await this.ensureTeamExists(team1);
-            await this.ensureTeamExists(team2);
+            await this.ensureTeamExists(team1, competitors[0].seed);
+            await this.ensureTeamExists(team2, competitors[1].seed);
 
             // Determine game status
-            const gameStatus = this.mapESPNStatus(espnGame.status.type.state);
+            const gameStatus = this.mapESPNStatus(event.status.type.state);
             
             // Get scores
-            const score1 = competitors[0].score ? parseInt(competitors[0].score) : 0;
-            const score2 = competitors[1].score ? parseInt(competitors[1].score) : 0;
+            const score1 = parseInt(competitors[0].score) || 0;
+            const score2 = parseInt(competitors[1].score) || 0;
 
             // Determine winner
             let winnerId: string | undefined;
             let winnerName: string | undefined;
             
             if (gameStatus === 'completed') {
-                const winner = competitors.find(c => c.winner);
+                const winner = competitors.find((c: any) => c.winner);
                 if (winner) {
                     winnerId = winner.team.id;
                     winnerName = winner.team.displayName;
                 }
             }
 
-            // Extract region from game name or shortName
-            const region = this.extractRegion(espnGame.name);
+            // Extract round and region from event notes or name
+            const round = this.extractRound(event.name, event.season?.type);
+            const region = this.extractRegion(event.name);
 
             // Find or create game
-            let game = await Game.findOne({ 
-                id: espnGame.id 
-            });
+            let game = await Game.findOne({ id: gameId });
 
             if (game) {
                 // Update existing game
@@ -228,14 +206,14 @@ export class BracketIngestionService {
                 game.region = region;
                 game.winnerId = winnerId;
                 game.winnerName = winnerName;
-                game.startTime = new Date(espnGame.date);
+                game.startTime = new Date(event.date);
                 await game.save();
                 
-                logger.debug(`Updated game ${espnGame.id}: ${team1.displayName} vs ${team2.displayName}`);
+                logger.debug(`Updated game ${gameId}: ${team1.displayName} vs ${team2.displayName}`);
             } else {
                 // Create new game
                 game = new Game({
-                    id: espnGame.id,
+                    id: gameId,
                     teamA: team1.displayName,
                     teamB: team2.displayName,
                     scoreA: score1,
@@ -245,19 +223,38 @@ export class BracketIngestionService {
                     region,
                     winnerId,
                     winnerName,
-                    startTime: new Date(espnGame.date),
+                    startTime: new Date(event.date),
                     bracketId: tournamentId
                 });
                 await game.save();
                 
-                logger.debug(`Created game ${espnGame.id}: ${team1.displayName} vs ${team2.displayName}`);
+                logger.debug(`Created game ${gameId}: ${team1.displayName} vs ${team2.displayName}`);
             }
 
             return game._id;
         } catch (error) {
-            logger.error(`Error processing game ${espnGame.id}:`, error);
+            logger.error(`Error processing event ${event.id}:`, error);
             return null;
         }
+    }
+
+    /**
+     * Extract round number from event name or season data
+     */
+    private extractRound(eventName: string, seasonType?: any): number {
+        const name = eventName.toLowerCase();
+        
+        // Match round keywords
+        if (name.includes('first four') || name.includes('play-in')) return 0;
+        if (name.includes('first round') || name.includes('round of 64')) return 1;
+        if (name.includes('second round') || name.includes('round of 32')) return 2;
+        if (name.includes('sweet 16') || name.includes('sweet sixteen')) return 3;
+        if (name.includes('elite 8') || name.includes('elite eight')) return 4;
+        if (name.includes('final four') || name.includes('semifinal')) return 5;
+        if (name.includes('championship') || name.includes('final')) return 6;
+        
+        // Default to round 1 if unclear
+        return 1;
     }
 
     /**
@@ -306,19 +303,23 @@ export class BracketIngestionService {
     /**
      * Ensure a team exists in the database
      */
-    private async ensureTeamExists(espnTeam: ESPNTeam): Promise<void> {
+    private async ensureTeamExists(espnTeam: any, seed?: number): Promise<void> {
         try {
             const existingTeam = await Team.findOne({ name: espnTeam.displayName });
             
             if (!existingTeam) {
                 const team = new Team({
                     name: espnTeam.displayName,
-                    seed: espnTeam.seed || 16, // Default to 16 if seed not available
+                    seed: seed || espnTeam.seed || 16, // Use provided seed, then team seed, default to 16
                     abbreviation: espnTeam.abbreviation,
-                    mascot: espnTeam.name
+                    mascot: espnTeam.name || espnTeam.displayName
                 });
                 await team.save();
                 logger.debug(`Created team: ${espnTeam.displayName}`);
+            } else if (seed && existingTeam.seed !== seed) {
+                // Update seed if provided and different
+                existingTeam.seed = seed;
+                await existingTeam.save();
             }
         } catch (error) {
             logger.error(`Error ensuring team exists for ${espnTeam.displayName}:`, error);
@@ -351,19 +352,20 @@ export class BracketIngestionService {
     /**
      * Determine tournament status based on games
      */
-    private determineTournamentStatus(bracketData: ESPNBracketResponse): 'upcoming' | 'in-progress' | 'completed' {
-        const allGames: ESPNGame[] = [];
-        for (const round of bracketData.bracket.rounds) {
-            allGames.push(...round.games);
+    private async determineTournamentStatusFromGames(gameIds: mongoose.Types.ObjectId[]): Promise<'upcoming' | 'in-progress' | 'completed'> {
+        if (gameIds.length === 0) {
+            return 'upcoming';
         }
+
+        const games = await Game.find({ _id: { $in: gameIds } });
         
-        const hasStarted = allGames.some((g: ESPNGame) => 
-            g.status.type.state !== 'pre' && g.status.type.state !== 'scheduled'
+        const hasStarted = games.some((g) => 
+            g.status !== 'not started'
         );
         
-        const allCompleted = allGames.every((g: ESPNGame) => g.status.type.completed);
+        const allCompleted = games.every((g) => g.status === 'completed');
         
-        if (allCompleted) {
+        if (allCompleted && games.length > 0) {
             return 'completed';
         } else if (hasStarted) {
             return 'in-progress';
