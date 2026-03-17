@@ -8,6 +8,7 @@ import { createLogger } from 'winston';
 import { bracketRoutes } from './routes/bracket.routes';
 import { userRoutes } from './routes/user.routes';
 import { scoreboardRoutes } from './routes/scoreboard.routes';
+import adminRoutes from './routes/admin.routes';
 import swaggerUi from 'swagger-ui-express';
 import swaggerJsdoc from 'swagger-jsdoc';
 import rateLimit from 'express-rate-limit';
@@ -15,8 +16,12 @@ import compression from 'compression';
 import timeout from 'connect-timeout';
 import promClient from 'prom-client';
 import './config/passport';
+import { SchedulerService } from './services/schedulerService';
 
 dotenv.config();
+
+// Initialize scheduler service
+const schedulerService = new SchedulerService();
 
 const logger = createLogger({
     // Add winston configuration here
@@ -144,6 +149,7 @@ app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerJsdoc(swaggerOption
 app.use('/api/users', userRoutes);
 app.use('/api/brackets', passport.authenticate('jwt', { session: false }), bracketRoutes);
 app.use('/api/scoreboard', scoreboardRoutes);
+app.use('/api/admin', adminRoutes);
 
 // Improve error handler
 app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
@@ -170,6 +176,11 @@ app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
 
 // Graceful shutdown handling
 const gracefulShutdown = () => {
+    logger.info('Starting graceful shutdown');
+    
+    // Stop scheduled jobs
+    schedulerService.stopAllJobs();
+    
     server.close(() => {
         logger.info('Server closed');
         mongoose.connection.close(false, () => {
@@ -181,6 +192,10 @@ const gracefulShutdown = () => {
 
 const server = app.listen(port, () => {
     logger.info(`Server running at http://localhost:${port}`);
+    
+    // Initialize scheduled jobs after server starts
+    schedulerService.initializeScheduledJobs();
+    logger.info('Bracket ingestion scheduler initialized');
 });
 
 process.on('SIGTERM', gracefulShutdown);

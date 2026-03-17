@@ -41,7 +41,8 @@
     "axios": "^1.6.0",
     "limiter": "^2.1.0",
     "compression": "^1.7.4",
-    "connect-timeout": "^1.9.0"
+    "connect-timeout": "^1.9.0",
+    "node-cron": "^3.0.3"
   },
   "devDependencies": {
     "ts-node": "^10.4.0",
@@ -66,7 +67,8 @@
     "@types/compression": "^1.7.5",
     "@types/connect-timeout": "^0.0.37",
     "@types/swagger-ui-express": "^4.1.6",
-    "@types/swagger-jsdoc": "^6.0.4"
+    "@types/swagger-jsdoc": "^6.0.4",
+    "@types/node-cron": "^3.0.11"
   },
   "author": "Your Name",
   "license": "MIT"
