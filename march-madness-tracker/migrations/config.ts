@@ -5,16 +5,13 @@ config();
 
 const migrationsConfig = {
     mongodb: {
-        url: process.env.MONGODB_URI,
-        options: {
-            useNewUrlParser: true,
-            useUnifiedTopology: true,
-        },
-        migrations: {
-            path: join(__dirname, './migrations'),
-            pattern: /\.ts$/,
-        },
+        url: process.env.MONGODB_URI || 'mongodb://localhost:27017/march-madness',
+        options: {},
     },
+    migrationsDir: join(__dirname),
+    changelogCollectionName: 'changelog',
+    migrationFileExtension: '.ts',
+    useFileHash: false,
 };
 
 export default migrationsConfig;

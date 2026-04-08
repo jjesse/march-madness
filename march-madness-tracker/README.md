@@ -171,8 +171,10 @@ If running without Docker, create a `.env` file in the root directory:
    LOG_LEVEL=info
    
    # Data Source Configuration
-   DATA_SOURCE_TYPE=espn
+   # Supported values: mock | espn | sportsradar | manual
+   DATA_SOURCE_TYPE=mock
    ESPN_API_URL=https://site.api.espn.com/apis/site/v2/sports/basketball/mens-college-basketball/scoreboard
+   SPORTSRADAR_API_URL=https://api.sportradar.us/ncaamb/trial/v7/en
    ```
 
 2. Start required services:
@@ -231,6 +233,23 @@ npm run docker:dev
 # Run database migrations
 npm run migrate:up
 ```
+
+## Database Migrations
+
+The repository now includes `migrate-mongo` migrations for core indexes and seeded tournament structure.
+
+```bash
+# Apply all pending migrations
+npm run migrate:up
+
+# Roll back the most recent migration
+npm run migrate:down
+
+# Create a new migration file
+npm run migrate:create -- add-new-change
+```
+
+> Run these commands from the `march-madness-tracker/` directory with `MONGODB_URI` set in your environment or `.env` file.
 
 ## Development
 

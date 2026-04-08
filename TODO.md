@@ -42,35 +42,35 @@ A prioritized list of everything remaining to make the application fully functio
 ## 🟡 Medium Priority — Stability & Quality
 
 ### Tests
-- [ ] Add `jest.config.js` (or `jest.config.ts`) with TypeScript transform settings and timeout configuration (README references this file but it does not exist).
-- [ ] Rewrite `tests/bracket.test.ts` — test cases call `getGames()`, `addGame()`, `getScore()`, `getWinner()`, `getNextRoundTeams()`, and a string-returning `render()`, none of which exist on the `Bracket` component. Tests should be rewritten to match the actual public API.
-- [ ] Add unit tests for `BracketService`, `ScoreboardService`, `TournamentService`, and `MasterBracketService`.
-- [ ] Add integration tests for all REST endpoints using `supertest`.
-- [ ] Add tests for authentication middleware and security middleware.
+- [x] Add `jest.config.js` (or `jest.config.ts`) with TypeScript transform settings and timeout configuration (README references this file but it does not exist).
+- [x] Rewrite `tests/bracket.test.ts` — test cases call `getGames()`, `addGame()`, `getScore()`, `getWinner()`, `getNextRoundTeams()`, and a string-returning `render()`, none of which exist on the `Bracket` component. Tests should be rewritten to match the actual public API.
+- [x] Add unit tests for `BracketService`, `ScoreboardService`, `TournamentService`, and `MasterBracketService`.
+- [x] Add integration tests for all REST endpoints using `supertest`.
+- [x] Add tests for authentication middleware and security middleware.
 
 ### Configuration & Tooling
-- [ ] Add `.eslintrc.js` (or `.eslintrc.json`) — ESLint is listed as a dependency and `npm run lint` is documented, but no config file exists.
-- [ ] Add `.prettierrc` if Prettier is intended (README mentions it alongside ESLint).
-- [ ] Verify that `tsconfig.json` `outDir` and `rootDir` settings are correct for the build output.
-- [ ] Verify that `jest` and `ts-jest` (or `babel-jest`) are listed in `devDependencies` inside `package.json` and install them if missing.
+- [x] Add `.eslintrc.js` (or `.eslintrc.json`) — ESLint is listed as a dependency and `npm run lint` is documented, but no config file exists.
+- [x] Add `.prettierrc` if Prettier is intended (README mentions it alongside ESLint).
+- [x] Verify that `tsconfig.json` `outDir` and `rootDir` settings are correct for the build output.
+- [x] Verify that `jest` and `ts-jest` (or `babel-jest`) are listed in `devDependencies` inside `package.json` and install them if missing.
 
 ### Data Source Implementation
-- [ ] **Implement mock data adapter** — Create sample tournament data for development/testing (highest priority for working app).
-- [ ] **Implement ESPN adapter** — Parse ESPN's unofficial API responses for live game data.
-- [ ] **Implement SportsRadar adapter** — Integrate with SportsRadar API (requires paid subscription).
-- [ ] **Implement manual data entry endpoints** — Admin routes to manually seed and update tournament data.
-- [ ] Add data source adapter factory pattern to switch between sources based on `DATA_SOURCE_TYPE` config.
-- [ ] Update `MasterBracketService.updateMasterBracket()` to use the configured adapter instead of hardcoded API calls.
+- [x] **Implement mock data adapter** — Create sample tournament data for development/testing (highest priority for working app).
+- [x] **Implement ESPN adapter** — Parse ESPN's unofficial API responses for live game data.
+- [x] **Implement SportsRadar adapter** — Integrate with SportsRadar API (requires paid subscription).
+- [x] **Implement manual data entry endpoints** — Admin routes to manually seed and update tournament data.
+- [x] Add data source adapter factory pattern to switch between sources based on `DATA_SOURCE_TYPE` config.
+- [x] Update `MasterBracketService.updateMasterBracket()` to use the configured adapter instead of hardcoded API calls.
 
 ### Database Migrations
-- [ ] Create an initial migration that sets up indexes for `users`, `brackets`, `games`, and `scoreboard` collections.
-- [ ] Create a migration that seeds tournament regions, rounds, and team slots for a given year.
-- [ ] Document how to run migrations in the README (`npm run migrate:up`).
+- [x] Create an initial migration that sets up indexes for `users`, `brackets`, `games`, and `scoreboard` collections.
+- [x] Create a migration that seeds tournament regions, rounds, and team slots for a given year.
+- [x] Document how to run migrations in the README (`npm run migrate:up`).
 
 ### Redis / Caching
-- [ ] Initialise the Redis client as a singleton and expose a shared instance so services do not open multiple connections.
-- [ ] Add Redis health check to the `/health` endpoint response.
-- [ ] Handle Redis connection errors gracefully (log and fall back to direct DB reads).
+- [x] Initialise the Redis client as a singleton and expose a shared instance so services do not open multiple connections.
+- [x] Add Redis health check to the `/health` endpoint response.
+- [x] Handle Redis connection errors gracefully (log and fall back to direct DB reads).
 
 ---
 

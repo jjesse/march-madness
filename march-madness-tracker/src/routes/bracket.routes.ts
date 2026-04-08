@@ -1,12 +1,26 @@
 /// <reference path="../types/express.d.ts" />
 import express from 'express';
+import mongoose from 'mongoose';
+import logger from '../config/logger';
 import { Bracket } from '../models/bracket';
 import { auth } from '../middleware/auth';
 
 const router = express.Router();
 
-// Apply auth middleware to all bracket routes
 router.use(auth);
+
+function validateBracketId(req: express.Request, res: express.Response, next: express.NextFunction) {
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+        return res.status(400).json({ error: 'Invalid bracket id' });
+    }
+
+    return next();
+}
+
+function handleServerError(res: express.Response, error: unknown) {
+    logger.error('Bracket route error:', error);
+    return res.status(500).json({ error: 'Internal server error' });
+}
 
 /**
  * @swagger
@@ -20,9 +34,9 @@ router.get('/', async (req, res) => {
             return res.status(401).json({ error: 'Unauthorized' });
         }
         const brackets = await Bracket.find({ userId: req.user.id }).populate('games');
-        res.json(brackets);
+        return res.json(brackets);
     } catch (error) {
-        res.status(500).json({ error: (error as Error).message });
+        return handleServerError(res, error);
     }
 });
 
@@ -38,9 +52,8 @@ router.post('/', async (req, res) => {
             return res.status(401).json({ error: 'Unauthorized' });
         }
 
-        const { name, games } = req.body;
+        const { name } = req.body;
 
-        // Input validation
         if (!name || typeof name !== 'string' || name.trim().length === 0) {
             return res.status(400).json({ error: 'Bracket name is required' });
         }
@@ -51,13 +64,14 @@ router.post('/', async (req, res) => {
 
         const bracket = new Bracket({
             ...req.body,
+            name: name.trim(),
             userId: req.user.id,
             year: new Date().getFullYear()
         });
         const saved = await bracket.save();
-        res.status(201).json(saved);
+        return res.status(201).json(saved);
     } catch (error) {
-        res.status(500).json({ error: (error as Error).message });
+        return handleServerError(res, error);
     }
 });
 
@@ -67,7 +81,7 @@ router.post('/', async (req, res) => {
  *   get:
  *     summary: Get a single bracket by ID (must be owned by the authenticated user)
  */
-router.get('/:id', async (req, res) => {
+router.get('/:id', validateBracketId, async (req, res) => {
     try {
         if (!req.user) {
             return res.status(401).json({ error: 'Unauthorized' });
@@ -79,9 +93,9 @@ router.get('/:id', async (req, res) => {
         if (!bracket) {
             return res.status(404).json({ error: 'Bracket not found' });
         }
-        res.json(bracket);
+        return res.json(bracket);
     } catch (error) {
-        res.status(500).json({ error: (error as Error).message });
+        return handleServerError(res, error);
     }
 });
 
@@ -91,14 +105,20 @@ router.get('/:id', async (req, res) => {
  *   put:
  *     summary: Update picks in a bracket (must be owned by the authenticated user)
  */
-router.put('/:id', async (req, res) => {
+router.put('/:id', validateBracketId, async (req, res) => {
     try {
         if (!req.user) {
             return res.status(401).json({ error: 'Unauthorized' });
         }
 
-        // Prevent updating certain fields
         const { userId, year, _id, ...updates } = req.body;
+
+        if (updates.name !== undefined) {
+            if (typeof updates.name !== 'string' || updates.name.trim().length === 0) {
+                return res.status(400).json({ error: 'Bracket name must be a non-empty string' });
+            }
+            updates.name = updates.name.trim();
+        }
 
         const bracket = await Bracket.findOneAndUpdate(
             { _id: req.params.id, userId: req.user.id },
@@ -108,9 +128,9 @@ router.put('/:id', async (req, res) => {
         if (!bracket) {
             return res.status(404).json({ error: 'Bracket not found' });
         }
-        res.json(bracket);
+        return res.json(bracket);
     } catch (error) {
-        res.status(500).json({ error: (error as Error).message });
+        return handleServerError(res, error);
     }
 });
 
@@ -120,7 +140,7 @@ router.put('/:id', async (req, res) => {
  *   delete:
  *     summary: Delete a bracket (must be owned by the authenticated user)
  */
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', validateBracketId, async (req, res) => {
     try {
         if (!req.user) {
             return res.status(401).json({ error: 'Unauthorized' });
@@ -132,9 +152,9 @@ router.delete('/:id', async (req, res) => {
         if (result.deletedCount === 0) {
             return res.status(404).json({ error: 'Bracket not found' });
         }
-        res.json({ message: 'Bracket deleted' });
+        return res.json({ message: 'Bracket deleted' });
     } catch (error) {
-        res.status(500).json({ error: (error as Error).message });
+        return handleServerError(res, error);
     }
 });
 

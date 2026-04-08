@@ -111,8 +111,10 @@ export class ScoreboardService {
     private calculateCorrectPicks(masterGames: GameModel[], userGames: GameModel[]): number {
         return masterGames.reduce((correct, masterGame) => {
             const userGame = userGames.find(g => g.id === masterGame.id);
-            if (userGame && masterGame.status === 'completed') {
-                return correct + (userGame.winnerId === masterGame.winnerId ? 1 : 0);
+            const selectedWinner = userGame?.userPick || userGame?.winnerId;
+
+            if (selectedWinner && masterGame.status === 'completed') {
+                return correct + (selectedWinner === masterGame.winnerId ? 1 : 0);
             }
             return correct;
         }, 0);

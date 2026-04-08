@@ -10,10 +10,10 @@ export function validateRequest(type: any) {
         
         if (errors.length > 0) {
             const message = errors.map(error => Object.values(error.constraints || {})).join(', ');
-            next(new ValidationError(message));
+            return next(new ValidationError(message));
         }
         
         req.body = dto;
-        next();
+        return next();
     };
 }

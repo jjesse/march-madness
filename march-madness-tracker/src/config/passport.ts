@@ -9,7 +9,10 @@ if (!jwtSecret) {
 
 const options: StrategyOptions = {
     jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
-    secretOrKey: jwtSecret
+    secretOrKey: jwtSecret,
+    algorithms: ['HS256'],
+    ...(process.env.JWT_ISSUER ? { issuer: process.env.JWT_ISSUER } : {}),
+    ...(process.env.JWT_AUDIENCE ? { audience: process.env.JWT_AUDIENCE } : {})
 };
 
 passport.use(

@@ -4,7 +4,6 @@ import dotenv from 'dotenv';
 import mongoose from 'mongoose';
 import passport from 'passport';
 import helmet from 'helmet';
-import { createLogger } from 'winston';
 import { bracketRoutes } from './routes/bracket.routes';
 import { userRoutes } from './routes/user.routes';
 import { scoreboardRoutes } from './routes/scoreboard.routes';
@@ -16,54 +15,66 @@ import compression from 'compression';
 import timeout from 'connect-timeout';
 import promClient from 'prom-client';
 import './config/passport';
+import logger from './config/logger';
+import { getRedisHealth } from './config/redis';
+import { auth, requireAdmin } from './middleware/auth';
 import { SchedulerService } from './services/schedulerService';
 
 dotenv.config();
 
-// Initialize scheduler service
-const schedulerService = new SchedulerService();
-
-const logger = createLogger({
-    // Add winston configuration here
-});
-
 const app = express();
-const port = process.env.PORT || 3000;
+const port = Number(process.env.PORT || 3000);
+let server: ReturnType<typeof app.listen> | null = null;
+let schedulerService: SchedulerService | null = null;
 
-// Add rate limiting configuration
 const limiter = rateLimit({
-    windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 100 // limit each IP to 100 requests per windowMs
+    windowMs: 15 * 60 * 1000,
+    max: 100
 });
 
-// MongoDB connection with error handling
-mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/march-madness')
-    .catch(err => {
-        logger.error('MongoDB connection error:', err);
-        process.exit(1);
-    });
+export async function connectDatabase(): Promise<void> {
+    if (mongoose.connection.readyState === 1 || mongoose.connection.readyState === 2) {
+        return;
+    }
 
-mongoose.connection.on('error', err => {
+    await mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/march-madness');
+}
+
+mongoose.connection.on('error', (err) => {
     logger.error('MongoDB error:', err);
 });
 
-app.use(cors());
+const allowedOrigins = (process.env.CORS_ORIGIN || 'http://localhost:3000')
+    .split(',')
+    .map((origin) => origin.trim())
+    .filter(Boolean);
+
+app.use(cors({
+    origin: (origin, callback) => {
+        if (!origin || allowedOrigins.includes(origin)) {
+            return callback(null, true);
+        }
+
+        logger.warn(`Blocked CORS request from origin: ${origin}`);
+        return callback(new Error('Not allowed by CORS'));
+    },
+    credentials: true
+}));
 app.use(express.json());
 app.use(passport.initialize());
 
-// Enhance security headers configuration
 app.use(helmet({
     contentSecurityPolicy: {
         directives: {
             defaultSrc: ["'self'"],
             scriptSrc: ["'self'", "'unsafe-inline'"],
             styleSrc: ["'self'", "'unsafe-inline'"],
-            imgSrc: ["'self'", "data:", "https:"],
+            imgSrc: ["'self'", 'data:', 'https:'],
             connectSrc: [
-                "'self'", 
-                "https://site.api.espn.com",  // ESPN unofficial API
-                "https://api.sportradar.com", // SportsRadar API
-                "https://api.sportradar.us"   // SportsRadar US API
+                "'self'",
+                'https://site.api.espn.com',
+                'https://api.sportradar.com',
+                'https://api.sportradar.us'
             ]
         }
     },
@@ -73,11 +84,10 @@ app.use(helmet({
         preload: true
     },
     frameguard: {
-        action: "deny"
+        action: 'deny'
     }
 }));
 
-// Add security middleware before routes
 app.use((req, res, next) => {
     res.setHeader('X-Content-Type-Options', 'nosniff');
     res.setHeader('X-XSS-Protection', '1; mode=block');
@@ -85,39 +95,42 @@ app.use((req, res, next) => {
     next();
 });
 
-// Add request logging
 app.use((req, res, next) => {
     logger.info(`${req.method} ${req.path}`);
     next();
 });
 
-// Add additional middleware
 app.use(limiter);
 app.use(compression());
 app.use(timeout('5s'));
 
-// Initialize Prometheus metrics
-const collectDefaultMetrics = promClient.collectDefaultMetrics;
-collectDefaultMetrics({ prefix: 'march_madness_' });
+promClient.collectDefaultMetrics({ prefix: 'march_madness_' });
 
-// Create a custom histogram metric
 const httpRequestDurationMicroseconds = new promClient.Histogram({
     name: 'http_request_duration_ms',
     help: 'Duration of HTTP requests in ms',
     labelNames: ['method', 'route', 'code']
 });
 
-// Add metrics endpoint
-app.get('/metrics', async (req, res) => {
+const metricsHandler = async (_req: Request, res: Response) => {
     res.set('Content-Type', promClient.register.contentType);
     res.end(await promClient.register.metrics());
-});
+};
 
-// Add request duration tracking
+if (process.env.PUBLIC_METRICS === 'true') {
+    app.get('/metrics', metricsHandler);
+} else {
+    app.get('/metrics', auth, requireAdmin, metricsHandler);
+}
+
 app.use((req, res, next) => {
     const end = httpRequestDurationMicroseconds.startTimer();
     res.on('finish', () => {
-        end({ method: req.method, route: req.route?.path, code: res.statusCode });
+        end({
+            method: req.method,
+            route: req.route?.path || req.path || 'unknown',
+            code: String(res.statusCode)
+        });
     });
     next();
 });
@@ -127,78 +140,91 @@ const swaggerOptions = {
         openapi: '3.0.0',
         info: {
             title: 'March Madness API',
-            version: '1.0.0',
-        },
+            version: '1.0.0'
+        }
     },
-    apis: ['./src/routes/*.ts'],
+    apis: ['./src/routes/*.ts']
 };
 
-// Health check endpoint
-app.get('/health', (req, res) => {
+app.get('/health', (_req, res) => {
     res.json({
         status: 'ok',
-        timestamp: new Date(),
-        mongoStatus: mongoose.connection.readyState === 1
+        timestamp: new Date().toISOString(),
+        mongoStatus: mongoose.connection.readyState === 1 ? 'up' : 'down',
+        redisStatus: getRedisHealth()
     });
 });
 
-// Swagger documentation
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerJsdoc(swaggerOptions)));
-
-// Routes
 app.use('/api/users', userRoutes);
 app.use('/api/brackets', passport.authenticate('jwt', { session: false }), bracketRoutes);
 app.use('/api/scoreboard', scoreboardRoutes);
 app.use('/api/admin', adminRoutes);
 
-// Improve error handler
-app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
+app.use((err: Error, req: Request, res: Response, _next: NextFunction) => {
     logger.error('Error:', {
         message: err.message,
         stack: err.stack,
         path: req.path,
         method: req.method
     });
-    
+
     if (err.name === 'ValidationError') {
         return res.status(400).json({ error: err.message });
     }
-    
+
     if (err.name === 'UnauthorizedError') {
         return res.status(401).json({ error: 'Unauthorized' });
     }
-    
-    res.status(500).json({ 
+
+    return res.status(500).json({
         error: 'Something went wrong',
-        id: (req as any).id // Add request ID for tracking
+        id: (req as any).id
     });
 });
 
-// Graceful shutdown handling
-const gracefulShutdown = () => {
+const gracefulShutdown = (): void => {
     logger.info('Starting graceful shutdown');
-    
-    // Stop scheduled jobs
-    schedulerService.stopAllJobs();
-    
-    server.close(() => {
-        logger.info('Server closed');
-        mongoose.connection.close(false, () => {
+    schedulerService?.stopAllJobs();
+
+    if (server) {
+        server.close(async () => {
+            logger.info('Server closed');
+            await mongoose.connection.close(false);
             logger.info('MongoDB connection closed');
             process.exit(0);
         });
+        return;
+    }
+
+    void mongoose.connection.close(false).then(() => {
+        logger.info('MongoDB connection closed');
+        process.exit(0);
     });
 };
 
-const server = app.listen(port, () => {
-    logger.info(`Server running at http://localhost:${port}`);
-    
-    // Initialize scheduled jobs after server starts
-    schedulerService.initializeScheduledJobs();
-    logger.info('Bracket ingestion scheduler initialized');
-});
+export async function startServer(): Promise<ReturnType<typeof app.listen>> {
+    await connectDatabase();
 
-process.on('SIGTERM', gracefulShutdown);
-process.on('SIGINT', gracefulShutdown);
+    return await new Promise((resolve) => {
+        server = app.listen(port, () => {
+            logger.info(`Server running at http://localhost:${port}`);
+            schedulerService = new SchedulerService();
+            schedulerService.initializeScheduledJobs();
+            logger.info('Bracket ingestion scheduler initialized');
+            resolve(server as ReturnType<typeof app.listen>);
+        });
+    });
+}
+
+if (require.main === module && process.env.NODE_ENV !== 'test') {
+    void startServer().catch((error) => {
+        logger.error('Server startup failed:', error);
+        process.exit(1);
+    });
+
+    process.on('SIGTERM', gracefulShutdown);
+    process.on('SIGINT', gracefulShutdown);
+}
 
 export default app;

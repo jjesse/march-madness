@@ -2,8 +2,7 @@ import { Bracket } from '../src/components/Bracket';
 import { Game } from '../src/components/Game';
 import { Team } from '../src/components/Team';
 
-describe('Bracket Component', () => {
-    let bracket: Bracket;
+describe('Bracket component', () => {
     const mockTeams = [
         new Team('Team A', 1),
         new Team('Team B', 16),
@@ -11,62 +10,62 @@ describe('Bracket Component', () => {
         new Team('Team D', 9),
     ];
 
-    beforeEach(() => {
-        bracket = new Bracket(mockTeams);
+    afterEach(() => {
+        jest.restoreAllMocks();
     });
 
-    test('should initialize with no games', () => {
-        expect(bracket.getGames()).toHaveLength(0);
+    test('initializes first-round matchups from the provided teams', () => {
+        const logSpy = jest.spyOn(console, 'log').mockImplementation(() => undefined);
+        const bracket = new Bracket(mockTeams);
+
+        bracket.render();
+
+        expect(logSpy).toHaveBeenCalledWith('Rendering bracket with games:', expect.any(Array));
+        const renderedGames = logSpy.mock.calls[0][1] as Game[];
+        expect(renderedGames).toHaveLength(2);
+        expect(renderedGames[0].getGameInfo()).toMatchObject({
+            teamA: 'Team A',
+            teamB: 'Team B',
+            scoreA: 0,
+            scoreB: 0,
+            status: 'upcoming',
+        });
     });
 
-    test('should add a game to the bracket', () => {
-        const team1 = new Team('Team A', 1);
-        const team2 = new Team('Team B', 2);
-        const game = new Game(team1, team2);
-        
-        bracket.addGame(game);
-        
-        expect(bracket.getGames()).toHaveLength(1);
-        expect(bracket.getGames()[0]).toBe(game);
+    test('updates the selected matchup scores through the public API', () => {
+        const logSpy = jest.spyOn(console, 'log').mockImplementation(() => undefined);
+        const bracket = new Bracket(mockTeams);
+
+        bracket.updateMatchup(0, 72, 65);
+        bracket.render();
+
+        const renderedGames = logSpy.mock.calls[0][1] as Game[];
+        expect(renderedGames[0].getGameInfo()).toMatchObject({
+            teamA: 'Team A',
+            teamB: 'Team B',
+            scoreA: 72,
+            scoreB: 65,
+            status: 'completed',
+        });
     });
 
-    test('should render the bracket correctly', () => {
-        const team1 = new Team('Team A', 1);
-        const team2 = new Team('Team B', 2);
-        const game = new Game(team1, team2);
-        
-        bracket.addGame(game);
-        
-        const renderedBracket = bracket.render();
-        expect(renderedBracket).toContain('Team A vs Team B');
+    test('ignores invalid matchup indexes without throwing', () => {
+        const bracket = new Bracket(mockTeams);
+
+        expect(() => bracket.updateMatchup(99, 70, 60)).not.toThrow();
     });
 
-    test('should update matchups correctly', () => {
-        const team1 = new Team('Team A', 1);
-        const team2 = new Team('Team B', 2);
-        const game = new Game(team1, team2);
-        
-        bracket.addGame(game);
-        bracket.updateMatchup(game, 'Team A', 'Team B', 1, 0);
-        
-        expect(game.getScore()).toEqual({ teamA: 1, teamB: 0 });
-    });
+    test('returns game details from the Game public API', () => {
+        const game = new Game(new Team('Alpha', 1), new Team('Beta', 2));
 
-    test('should handle invalid game updates', () => {
-        expect(() => {
-            bracket.updateMatchup(-1, 70, 65);
-        }).toThrow('Invalid game index');
-    });
+        game.updateScore(81, 79);
 
-    test('should calculate winner correctly', () => {
-        bracket.updateMatchup(0, 70, 65);
-        const game = bracket.getGames()[0];
-        expect(game.getWinner()).toBe('Team A');
-    });
-
-    test('should handle tournament progression', () => {
-        bracket.updateMatchup(0, 70, 65);
-        bracket.updateMatchup(1, 80, 75);
-        expect(bracket.getNextRoundTeams()).toHaveLength(1);
+        expect(game.getGameInfo()).toEqual({
+            teamA: 'Alpha',
+            teamB: 'Beta',
+            scoreA: 81,
+            scoreB: 79,
+            status: 'completed',
+        });
     });
 });
