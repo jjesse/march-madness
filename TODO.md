@@ -83,10 +83,10 @@ A prioritized list of everything remaining to make the application fully functio
 - [ ] Add `CONTRIBUTING.md` with coding standards, PR process, and branch strategy.
 
 ### Security
-- [ ] Move `.env` out of version control (add to `.gitignore`) and replace with `.env.example` containing placeholder values.
-- [ ] Rotate or invalidate the example `JWT_SECRET` value committed in `.env`.
-- [ ] Set a token expiry (`expiresIn`) when signing JWTs.
-- [ ] Validate and sanitise all user-supplied IDs (bracket ID, user ID) to prevent injection.
+- [x] Move `.env` out of version control (add to `.gitignore`) and replace with `.env.example` containing placeholder values.
+- [x] Rotate or invalidate the example `JWT_SECRET` value committed in `.env`.
+- [x] Set a token expiry (`expiresIn`) when signing JWTs.
+- [x] Validate and sanitise all user-supplied IDs (bracket ID, user ID) to prevent injection.
 - [ ] Review Content Security Policy settings in `security.ts` for production domains.
 
 ### Monitoring & Logging

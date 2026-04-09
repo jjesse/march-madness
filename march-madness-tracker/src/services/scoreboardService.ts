@@ -54,7 +54,10 @@ export class ScoreboardService {
             for (const userGame of userBracket.games) {
                 const masterGame = masterBracket.games.find(g => g.id === userGame.id);
                 if (masterGame && masterGame.status === 'completed') {
-                    userGame.pickStatus = userGame.userPick === masterGame.winnerId ? 'correct' : 'incorrect';
+                    const selectedWinner = userGame.userPick || userGame.winnerId;
+                    userGame.pickStatus = this.isWinningSelection(selectedWinner, masterGame)
+                        ? 'correct'
+                        : 'incorrect';
                     await userGame.save();
                 }
             }
@@ -114,13 +117,26 @@ export class ScoreboardService {
             const selectedWinner = userGame?.userPick || userGame?.winnerId;
 
             if (selectedWinner && masterGame.status === 'completed') {
-                return correct + (selectedWinner === masterGame.winnerId ? 1 : 0);
+                return correct + (this.isWinningSelection(selectedWinner, masterGame) ? 1 : 0);
             }
             return correct;
         }, 0);
     }
 
+    private isWinningSelection(selectedWinner: string | undefined, masterGame: GameModel): boolean {
+        const normalizedSelection = selectedWinner?.trim().toLowerCase();
+        if (!normalizedSelection) {
+            return false;
+        }
+
+        const winners = [masterGame.winnerId, masterGame.winnerName]
+            .filter((value): value is string => Boolean(value))
+            .map((value) => value.trim().toLowerCase());
+
+        return winners.includes(normalizedSelection);
+    }
+
     private isCorrectPick(game: GameModel): boolean {
-        return game.status === 'completed' && game.winnerId === game.userPick;
+        return game.status === 'completed' && this.isWinningSelection(game.userPick, game);
     }
 }

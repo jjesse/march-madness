@@ -51,4 +51,6 @@ const gameSchema = new mongoose.Schema({
     }
 });
 
+gameSchema.index({ id: 1, bracketId: 1 }, { unique: true, name: 'games_id_bracket_unique' });
+
 export const Game = mongoose.model<GameModel>('Game', gameSchema);

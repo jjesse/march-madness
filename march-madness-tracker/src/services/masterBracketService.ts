@@ -147,7 +147,12 @@ export class MasterBracketService {
             return 'pending';
         }
 
-        return game.winnerId === userPickId ? 'correct' : 'incorrect';
+        const normalizedPick = userPickId.trim().toLowerCase();
+        const winningValues = [game.winnerId, game.winner?.name]
+            .filter((value): value is string => Boolean(value))
+            .map((value) => value.trim().toLowerCase());
+
+        return winningValues.includes(normalizedPick) ? 'correct' : 'incorrect';
     }
 
     private async saveMasterBracket(data: MasterBracketData): Promise<BracketModel> {
