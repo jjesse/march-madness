@@ -43,6 +43,25 @@ export interface Bracket {
   isMaster?: boolean;
 }
 
+/** A `Game` whose ambiguous fields have been resolved into stable, always-defined values. */
+export interface NormalizedGame extends Omit<Game, 'pickStatus'> {
+  /** Stable composite key: `_id ?? id`. Use this as the React `key` and for game lookups. */
+  key: string;
+  /** Always defined — defaults to `'pending'`. */
+  pickStatus: PickStatus;
+  /** `true` when the game status is anything other than `'not started'`. */
+  isLocked: boolean;
+}
+
+/** A `Bracket` with all games normalized and optional fields resolved to concrete values. */
+export interface NormalizedBracket extends Omit<Bracket, 'games' | 'totalPoints' | 'isPublic'> {
+  /** Stable composite key: `_id ?? id ?? ''`. */
+  key: string;
+  games: NormalizedGame[];
+  totalPoints: number;
+  isPublic: boolean;
+}
+
 export interface ScoreboardEntry {
   _id?: string;
   userId: string;

@@ -18,6 +18,21 @@ services:
       - .:/usr/src/app
       - /usr/src/app/node_modules
 
+  frontend:
+    image: node:20
+    working_dir: /app
+    volumes:
+      - ./client:/app
+      - /app/node_modules
+    ports:
+      - "5173:5173"
+    environment:
+      # Points the Vite proxy to the API service using Docker's internal network name
+      - VITE_API_PROXY_TARGET=http://app:4000
+    command: sh -c "npm install && npm run dev"
+    depends_on:
+      - app
+
   mongo:
     image: mongo:4.4
     ports:

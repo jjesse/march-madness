@@ -2,10 +2,10 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import bracketService from '../services/bracketService';
 import LoadingSpinner from '../components/LoadingSpinner';
-import type { Bracket } from '../types';
+import type { NormalizedBracket } from '../types';
 
 export default function MyBracketsPage() {
-  const [brackets, setBrackets] = useState<Bracket[]>([]);
+  const [brackets, setBrackets] = useState<NormalizedBracket[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
 
@@ -35,7 +35,7 @@ export default function MyBracketsPage() {
 
     try {
       await bracketService.remove(id);
-      setBrackets((current) => current.filter((bracket) => (bracket._id || bracket.id) !== id));
+      setBrackets((current) => current.filter((bracket) => bracket.key !== id));
     } catch {
       setError('Unable to delete the selected bracket.');
     }
@@ -74,14 +74,14 @@ export default function MyBracketsPage() {
       ) : (
         <div className="grid two">
           {brackets.map((bracket) => {
-            const id = bracket._id || bracket.id || '';
+            const id = bracket.key;
 
             return (
               <article key={id} className="card">
                 <h2>{bracket.name}</h2>
                 <p>Year: {bracket.year}</p>
-                <p>Games linked: {bracket.games?.length || 0}</p>
-                <p>Total points: {bracket.totalPoints ?? 0}</p>
+                <p>Games linked: {bracket.games.length}</p>
+                <p>Total points: {bracket.totalPoints}</p>
                 <div className="inline-row">
                   <Link to={`/brackets/${id}`} className="primary-button">
                     View details

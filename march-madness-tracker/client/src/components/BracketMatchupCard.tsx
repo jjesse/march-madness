@@ -1,13 +1,9 @@
-import type { Game } from '../types';
+import type { NormalizedGame } from '../types';
 
 interface BracketMatchupCardProps {
-  game: Game;
+  game: NormalizedGame;
   onPickSelect: (selectedWinner: string) => void;
   onClearPick: () => void;
-}
-
-function isGameLocked(status: string): boolean {
-  return status !== 'not started';
 }
 
 export default function BracketMatchupCard({
@@ -15,7 +11,7 @@ export default function BracketMatchupCard({
   onPickSelect,
   onClearPick,
 }: BracketMatchupCardProps) {
-  const locked = isGameLocked(game.status);
+  const locked = game.isLocked;
 
   return (
     <tr>
@@ -55,7 +51,7 @@ export default function BracketMatchupCard({
         ) : null}
       </td>
       <td>
-        <span className={`badge ${game.pickStatus || 'pending'}`}>{game.pickStatus || 'pending'}</span>
+        <span className={`badge ${game.pickStatus}`}>{game.pickStatus}</span>
       </td>
       <td>{locked ? `${game.status} (locked)` : 'not started (editable)'}</td>
       <td>

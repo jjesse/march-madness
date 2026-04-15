@@ -6,15 +6,12 @@ import EmptyState from '../components/EmptyState';
 import LoadingSpinner from '../components/LoadingSpinner';
 import PageHeader from '../components/PageHeader';
 import bracketService from '../services/bracketService';
-import type { Bracket } from '../types';
-
-function isGameLocked(status: string): boolean {
-  return status !== 'not started';
-}
+import type { NormalizedBracket } from '../types';
+import { groupGamesByRound } from '../utils/normalize';
 
 export default function BracketDetailsPage() {
   const { id = '' } = useParams();
-  const [bracket, setBracket] = useState<Bracket | null>(null);
+  const [bracket, setBracket] = useState<NormalizedBracket | null>(null);
   const [name, setName] = useState('');
   const [isPublic, setIsPublic] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -42,22 +39,10 @@ export default function BracketDetailsPage() {
     void loadBracket();
   }, [id]);
 
-  const groupedGames = useMemo(() => {
-    const games = [...(bracket?.games || [])].sort((left, right) => {
-      if (left.round !== right.round) {
-        return left.round - right.round;
-      }
-
-      return `${left.region}-${left.id}`.localeCompare(`${right.region}-${right.id}`);
-    });
-
-    return games.reduce<Record<number, Bracket['games']>>((accumulator, game) => {
-      const round = game.round || 0;
-      accumulator[round] = accumulator[round] || [];
-      accumulator[round].push(game);
-      return accumulator;
-    }, {});
-  }, [bracket]);
+  const groupedGames = useMemo(
+    () => groupGamesByRound(bracket?.games ?? []),
+    [bracket],
+  );
 
   const handlePickSelection = (gameKey: string, selectedWinner: string) => {
     setBracket((current) => {
@@ -68,8 +53,7 @@ export default function BracketDetailsPage() {
       return {
         ...current,
         games: current.games.map((game) => {
-          const key = game._id || game.id;
-          if (key !== gameKey || isGameLocked(game.status)) {
+          if (game.key !== gameKey || game.isLocked) {
             return game;
           }
 
@@ -93,8 +77,7 @@ export default function BracketDetailsPage() {
       return {
         ...current,
         games: current.games.map((game) => {
-          const key = game._id || game.id;
-          if (key !== gameKey || isGameLocked(game.status)) {
+          if (game.key !== gameKey || game.isLocked) {
             return game;
           }
 
@@ -205,14 +188,14 @@ export default function BracketDetailsPage() {
         </div>
       </div>
 
-      {Object.keys(groupedGames).length === 0 ? (
+      {groupedGames.size === 0 ? (
         <EmptyState
           title="No matchup data yet"
           description="This bracket is ready, but there are no tournament games linked yet. Once the backend syncs bracket games, your pick controls will appear here."
         />
       ) : (
         <div className="grid">
-          {Object.entries(groupedGames).map(([round, games]) => (
+          {Array.from(groupedGames.entries()).map(([round, games]) => (
             <BracketRoundSection
               key={round}
               round={round}

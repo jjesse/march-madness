@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import LoadingSpinner from '../components/LoadingSpinner';
 import scoreboardService from '../services/scoreboardService';
 import type { ScoreboardEntry } from '../types';
+import { ROUND_LABELS } from '../utils/normalize';
 
 export default function ResultsPage() {
   const [scores, setScores] = useState<ScoreboardEntry[]>([]);
@@ -71,7 +72,7 @@ export default function ResultsPage() {
                   <tbody>
                     {(entry.roundScores || []).map((roundScore) => (
                       <tr key={roundScore.round}>
-                        <td>{roundScore.round}</td>
+                        <td>{ROUND_LABELS[roundScore.round] ?? `Round ${roundScore.round}`}</td>
                         <td>{roundScore.correct}</td>
                         <td>{roundScore.points}</td>
                       </tr>

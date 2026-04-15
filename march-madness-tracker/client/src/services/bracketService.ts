@@ -1,5 +1,6 @@
+import type { Bracket, NormalizedBracket } from '../types';
+import { normalizeBracket } from '../utils/normalize';
 import api from './api';
-import type { Bracket } from '../types';
 
 export interface CreateBracketPayload {
   name: string;
@@ -7,24 +8,24 @@ export interface CreateBracketPayload {
 }
 
 const bracketService = {
-  async list() {
+  async list(): Promise<NormalizedBracket[]> {
     const response = await api.get<Bracket[]>('/brackets');
-    return response.data;
+    return response.data.map(normalizeBracket);
   },
 
-  async create(payload: CreateBracketPayload) {
+  async create(payload: CreateBracketPayload): Promise<NormalizedBracket> {
     const response = await api.post<Bracket>('/brackets', { ...payload, games: [] });
-    return response.data;
+    return normalizeBracket(response.data);
   },
 
-  async getById(id: string) {
+  async getById(id: string): Promise<NormalizedBracket> {
     const response = await api.get<Bracket>(`/brackets/${id}`);
-    return response.data;
+    return normalizeBracket(response.data);
   },
 
-  async update(id: string, updates: Partial<Bracket>) {
+  async update(id: string, updates: Partial<Bracket>): Promise<NormalizedBracket> {
     const response = await api.put<Bracket>(`/brackets/${id}`, updates);
-    return response.data;
+    return normalizeBracket(response.data);
   },
 
   async remove(id: string) {

@@ -26,7 +26,7 @@ Completed tonight:
 - reusable UI components plus responsive visual polish
 
 Still next up:
-- frontend tests and quality checks
+- data normalization and input validation follow-up work
 - a few nice-to-have product enhancements like auto-refresh and sharing
 
 ---
@@ -124,17 +124,17 @@ Still next up:
   - [x] `ScoreboardEntry`
   - [x] `ApiError`
 - [x] Align frontend types with backend response shapes
-- [ ] Normalize API data for easier bracket rendering
+- [x] Normalize API data for easier bracket rendering
 
 ---
 
 ## 🟢 Testing & Quality
 
-- [ ] Add frontend lint config if needed for the client app
-- [ ] Add unit tests for core UI components
-- [ ] Add tests for auth flow and protected routing
-- [ ] Add integration tests for bracket submission and leaderboard display
-- [ ] Add basic accessibility checks for forms and navigation
+- [x] Add frontend lint config if needed for the client app
+- [x] Add unit tests for core UI components
+- [x] Add tests for auth flow and protected routing
+- [x] Add integration tests for bracket submission and leaderboard display
+- [x] Add basic accessibility checks for forms and navigation
 
 ---
 

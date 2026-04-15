@@ -1,9 +1,10 @@
-import type { Game } from '../types';
+import type { NormalizedGame } from '../types';
+import { ROUND_LABELS } from '../utils/normalize';
 import BracketMatchupCard from './BracketMatchupCard';
 
 interface BracketRoundSectionProps {
-  round: string;
-  games: Game[];
+  round: number;
+  games: NormalizedGame[];
   onPickSelect: (gameKey: string, selectedWinner: string) => void;
   onClearPick: (gameKey: string) => void;
 }
@@ -16,7 +17,7 @@ export default function BracketRoundSection({
 }: BracketRoundSectionProps) {
   return (
     <section className="card">
-      <h2>Round {round}</h2>
+      <h2>{ROUND_LABELS[round] ?? `Round ${round}`}</h2>
       <div className="table-wrap">
         <table className="table">
           <thead>
@@ -31,7 +32,7 @@ export default function BracketRoundSection({
           </thead>
           <tbody>
             {games.map((game) => {
-              const gameKey = game._id || game.id;
+              const gameKey = game.key;
               return (
                 <BracketMatchupCard
                   key={gameKey}

@@ -2,125 +2,184 @@
 
 ## NCAA Men's March Madness Tournament Tracker
 
-A modern, TypeScript-based web application for tracking and managing the NCAA Men's March Madness Tournament. This interactive platform provides real-time bracket updates, game tracking, and comprehensive team statistics throughout the tournament.
+A full-stack, TypeScript-based web application for tracking and managing the NCAA Men's March Madness Tournament. Users can register, create brackets, make picks, and track how their picks perform as games are completed — all through a responsive React frontend backed by a hardened Express/MongoDB API.
 
 ## Quick Start
 
-Get up and running in 3 commands:
-
 ```bash
-# 1. Start Docker containers
+# 1. Start Docker containers (API + MongoDB + Redis)
+cd march-madness-tracker
 docker compose up -d
 
-# 2. Register and login to get JWT token
-TOKEN=$(curl -X POST http://localhost:3005/api/users/register \
+# 2. Register and get a JWT token
+TOKEN=$(curl -s -X POST http://localhost:3005/api/users/login \
   -H "Content-Type: application/json" \
-  -d '{"email":"admin@example.com","password":"Pass123!","username":"admin"}' && \
-  curl -X POST http://localhost:3005/api/users/login \
-  -H "Content-Type: application/json" \
-  -d '{"email":"admin@example.com","password":"Pass123!"}' | jq -r '.token')
+  -d '{"email":"admin@example.com","password":"SecurePass123!"}' | jq -r '.token')
 
-# 3. Trigger bracket sync (or wait for automatic 6 AM daily sync)
-curl -X POST http://localhost:3005/api/admin/sync/bracket \
-  -H "Authorization: Bearer $TOKEN" \
-  -H "Content-Type: application/json"
+# 3. Open the frontend
+open http://localhost:5173
 ```
 
-✅ **That's it!** Your March Madness bracket data is now syncing from ESPN.
+> First time? Register via the `/register` page in the UI, or via the API (see the **API** section below).
 
-**Next Steps:**
-- Visit [http://localhost:3005/api-docs](http://localhost:3005/api-docs) to explore all API endpoints
-- Check [http://localhost:3005/health](http://localhost:3005/health) to verify the app is running
-- View logs: `docker logs march-madness-tracker-app-1 -f`
+**Service URLs**
 
-## What You'll See
+| Service | URL |
+|---------|-----|
+| React frontend (dev) | http://localhost:5173 |
+| API + Swagger | http://localhost:3005 |
+| Swagger UI | http://localhost:3005/api-docs |
+| Health check | http://localhost:3005/health |
+| Metrics | http://localhost:3005/metrics |
 
-This is a **backend API application** - there's no frontend UI. When you access `http://localhost:3005` in your browser, you'll see:
+## What's Been Built
 
-### Available Endpoints
+### Frontend (React / Vite)
 
-| Endpoint | Description | Authentication |
-|----------|-------------|----------------|
-| [http://localhost:3005/health](http://localhost:3005/health) | Health check - confirms app is running | None |
-| [http://localhost:3005/api-docs](http://localhost:3005/api-docs) | **Swagger UI** - Interactive API documentation | None |
-| [http://localhost:3005/metrics](http://localhost:3005/metrics) | Prometheus metrics | None |
-| `POST http://localhost:3005/api/users/register` | Register new user | None |
-| `POST http://localhost:3005/api/users/login` | Login (get JWT token) | None |
-| `POST http://localhost:3005/api/admin/sync/bracket` | Trigger bracket sync | JWT Required |
-| `GET http://localhost:3005/api/admin/sync/status` | Get sync status | JWT Required |
-| `GET http://localhost:3005/api/brackets` | List user brackets | JWT Required |
-| `GET http://localhost:3005/api/scoreboard` | View scoreboard | None |
+A complete single-page application at `client/` built with React 18, TypeScript, Vite, and React Router.
 
-**👉 Start here:** Visit [http://localhost:3005/api-docs](http://localhost:3005/api-docs) to explore all available endpoints in an interactive UI.
+**Pages**
+- `/` — Home / landing page
+- `/login` & `/register` — Authentication
+- `/brackets` — List, create, and delete your brackets
+- `/brackets/new` — Create a new named bracket
+- `/brackets/:id` — Edit bracket metadata and make/save picks per game
+- `/results` — Your per-bracket scoring history with round breakdowns
+- `/leaderboard` — Full standings filtered by year
+- `/profile` — Edit profile and change password
 
-**Note:** The root path `/` will show "Cannot GET /" - this is expected, as this is an API-only backend service.
+**Pick system**
+- Each game in a bracket shows two team pick buttons
+- Picks are saved to the backend by game ID
+- Games lock automatically once they move to "in progress" or "completed"
+- Pick status badges show `pending`, `correct`, or `incorrect` after scoring
 
-## Features
+**Auth / routing**
+- JWT stored in `localStorage`, attached to every API request
+- Protected routes redirect to `/login` if unauthenticated
+- Expired sessions are detected via 401 response and cleared automatically
 
-- **Automatic ESPN Bracket Sync**: Daily updates at 6:00 AM from ESPN Scoreboard API
-- **Manual Sync Controls**: Admin endpoints to trigger on-demand bracket updates
-- Interactive tournament bracket
-- Game tracking and status updates
-- Team management and information display
-- User authentication and authorization (JWT-based)
-- Real-time scoring and leaderboard
-- Multi-bracket support per user
-- Historical tournament data tracking
-- API documentation with Swagger
-- Docker support for development and deployment
-- Real-time winner/loser tracking
-- Pick accuracy statistics
-- Master bracket comparison
-- Enhanced security headers using Helmet middleware
-- Request logging using Winston
-- Health check endpoint
-- Rate limiting to prevent abuse
-- Response compression for improved performance
-- Request timeout handling
-- Detailed error handling
-- Graceful shutdown handling
-- MongoDB + Redis caching
-- Prometheus metrics for monitoring
+**Frontend stack**
+
+| Tool | Purpose |
+|------|---------|
+| React 18 | UI framework |
+| TypeScript | Type safety |
+| Vite | Dev server and bundler |
+| React Router DOM | Client-side routing |
+| Axios | HTTP client with interceptors |
+| Vitest + Testing Library | Unit and integration tests |
+| ESLint + jsx-a11y | Linting and accessibility checks |
+
+### Backend (Express / MongoDB)
+
+| Feature | Detail |
+|---------|--------|
+| Authentication | JWT via Passport.js; bcrypt password hashing |
+| Bracket management | CRUD + per-game pick storage and lock enforcement |
+| Master bracket sync | ESPN Unofficial API, daily 6 AM cron + manual admin trigger |
+| Scoring | `scoreboardService` evaluates picks against game results |
+| Leaderboard | Ranked standings by year with round-by-round breakdowns |
+| Security | Helmet, rate limiting, input validation (Joi), XSS sanitization |
+| Observability | Winston logging, Prometheus metrics, health check endpoint |
+| Caching | Redis for session-level bracket data |
+| Database migrations | `migrate-mongo` manages indexes and seed structure |
 
 ## Project Structure
 
 ```
-march-madness-tracker
-├── src
-│   ├── components
+march-madness-tracker/
+├── client/                        # React / Vite frontend
+│   ├── index.html
+│   ├── vite.config.ts
+│   ├── vitest.config.ts
+│   ├── tsconfig.json
+│   ├── .eslintrc.cjs
+│   └── src/
+│       ├── main.tsx
+│       ├── App.tsx               # Routes + ProtectedRoute wiring
+│       ├── styles.css
+│       ├── components/           # Reusable UI components
+│       │   ├── AlertMessage.tsx
+│       │   ├── AuthCard.tsx
+│       │   ├── BracketMatchupCard.tsx
+│       │   ├── BracketRoundSection.tsx
+│       │   ├── EmptyState.tsx
+│       │   ├── Layout.tsx
+│       │   ├── LeaderboardTable.tsx
+│       │   ├── LoadingSpinner.tsx
+│       │   ├── PageHeader.tsx
+│       │   └── ProtectedRoute.tsx
+│       ├── contexts/
+│       │   └── AuthContext.tsx   # User session state
+│       ├── hooks/
+│       │   └── useAuth.ts
+│       ├── pages/
+│       │   ├── HomePage.tsx
+│       │   ├── LoginPage.tsx
+│       │   ├── RegisterPage.tsx
+│       │   ├── MyBracketsPage.tsx
+│       │   ├── BracketPage.tsx
+│       │   ├── BracketDetailsPage.tsx
+│       │   ├── LeaderboardPage.tsx
+│       │   ├── ResultsPage.tsx
+│       │   ├── ProfilePage.tsx
+│       │   └── NotFoundPage.tsx
+│       ├── services/
+│       │   ├── api.ts            # Axios instance + auth interceptors
+│       │   ├── authService.ts
+│       │   ├── bracketService.ts # Normalizes all API responses
+│       │   ├── scoreboardService.ts
+│       │   └── userService.ts
+│       ├── types/
+│       │   └── index.ts          # Shared types incl. NormalizedGame/Bracket
+│       ├── utils/
+│       │   └── normalize.ts      # normalizeGame, normalizeBracket,
+│       │                         # groupGamesByRound, ROUND_LABELS
+│       └── test/
+│           └── setup.ts          # jest-dom matchers
+│
+├── src/                          # Express / TypeScript API
+│   ├── app.ts
+│   ├── components/
 │   │   ├── Bracket.ts
 │   │   ├── Game.ts
 │   │   └── Team.ts
-│   ├── config
-│   │   ├── passport.ts
-│   │   └── logger.ts
-│   ├── middleware
-│   │   └── auth.ts
-│   ├── models
-│   │   ├── game.ts
-│   │   ├── team.ts
-│   │   ├── user.ts
+│   ├── config/
+│   │   ├── logger.ts
+│   │   └── passport.ts
+│   ├── middleware/
+│   │   ├── auth.ts
+│   │   ├── security.ts
+│   │   └── validation.ts
+│   ├── models/
 │   │   ├── bracket.ts
+│   │   ├── game.ts
 │   │   ├── scoreboard.ts
-│   │   └── tournament.ts
-│   ├── routes
+│   │   ├── team.ts
+│   │   ├── tournament.ts
+│   │   └── user.ts
+│   ├── routes/
+│   │   ├── admin.routes.ts
 │   │   ├── bracket.routes.ts
-│   │   ├── user.routes.ts
 │   │   ├── scoreboard.routes.ts
-│   │   └── admin.routes.ts       # Admin sync endpoints
-│   ├── services
+│   │   └── user.routes.ts
+│   ├── services/
+│   │   ├── bracketIngestionService.ts
 │   │   ├── bracketService.ts
-│   │   ├── bracketIngestionService.ts  # ESPN API integration
-│   │   ├── schedulerService.ts         # Daily sync scheduler
-│   │   ├── tournamentService.ts
+│   │   ├── masterBracketService.ts
+│   │   ├── metricsService.ts
+│   │   ├── schedulerService.ts
 │   │   ├── scoreboardService.ts
-│   │   └── metricsService.ts
-│   ├── utils
-│   │   └── index.ts
-│   └── app.ts
-├── migrations
+│   │   └── tournamentService.ts
+│   ├── types/
+│   │   ├── errors.ts
+│   │   └── express.d.ts
+│   └── utils/
+│       └── index.ts
+├── migrations/
 │   └── config.ts
-├── tests
+├── tests/
 │   └── bracket.test.ts
 ├── Dockerfile
 ├── docker-compose.yml
@@ -131,19 +190,14 @@ march-madness-tracker
 
 ## Prerequisites
 
-- Node.js (v14 or higher)
-- npm (v6 or higher)
-- TypeScript (v4.5 or higher)
-- MongoDB (v5.0 or higher)
-- Redis (v6.0 or higher)
-- Git
-- Docker (optional, for containerized development)
+- Node.js v20+
+- npm v9+
+- Docker and Docker Compose (recommended)
+- MongoDB 5+ and Redis 6+ (if running without Docker)
 
 ## Environment Setup
 
-The application uses environment variables for configuration. When using Docker Compose, these are already configured in `docker-compose.yml`:
-
-**Docker Compose Environment (Recommended):**
+**Docker Compose (recommended)** — variables are pre-configured in `docker-compose.yml`:
 
 ```yaml
 environment:
@@ -151,518 +205,271 @@ environment:
   - PORT=4000                    # Internal port (exposed as 3005)
   - MONGODB_URI=mongodb://mongo:27017/march-madness
   - REDIS_URL=redis://redis:6379
-  - JWT_SECRET=your-secret-key-change-in-production-use-long-random-string-min-32-chars
-  - JWT_EXPIRATION=3600          # 1 hour
+  - JWT_SECRET=change-me-min-32-chars-random-string
+  - JWT_EXPIRATION=3600
   - LOG_LEVEL=info
 ```
 
-**Local Development (.env file):**
-
-If running without Docker, create a `.env` file in the root directory:
-
-   ```env
-   PORT=3000
-   NODE_ENV=development
-   MONGODB_URI=mongodb://localhost:27017/march-madness
-   REDIS_URL=redis://localhost:6379
-   JWT_SECRET=your-secret-key-change-in-production
-   JWT_EXPIRATION=3600
-   API_URL=http://localhost:3000/api
-   LOG_LEVEL=info
-   
-   # Data Source Configuration
-   # Supported values: mock | espn | sportsradar | manual
-   DATA_SOURCE_TYPE=mock
-   ESPN_API_URL=https://site.api.espn.com/apis/site/v2/sports/basketball/mens-college-basketball/scoreboard
-   SPORTSRADAR_API_URL=https://api.sportradar.us/ncaamb/trial/v7/en
-   ```
-
-2. Start required services:
-
-   ```bash
-   # Start MongoDB
-   sudo service mongod start
-   
-   # Start Redis
-   sudo service redis start
-   
-   # Or using Docker
-   docker-compose up -d mongodb redis
-   ```
-
-## Installation
-
-1. Clone the repository:
-
-   ```bash
-   git clone <repository-url>
-   ```
-
-2. Navigate to the project directory:
-
-   ```bash
-   cd march-madness-tracker
-   ```
-
-3. Install the dependencies:
-
-   ```bash
-   npm install
-   ```
-
-## Usage
-
-The application provides several features:
-
-```bash
-# Start in development mode with hot reloading
-npm run dev
-
-# Build for production
-npm run build
-
-# Start production server
-npm start
-
-# Generate documentation
-npm run docs
-
-# Start with Docker
-npm run docker:dev
-
-# Run database migrations
-npm run migrate:up
-```
-
-## Database Migrations
-
-The repository now includes `migrate-mongo` migrations for core indexes and seeded tournament structure.
-
-```bash
-# Apply all pending migrations
-npm run migrate:up
-
-# Roll back the most recent migration
-npm run migrate:down
-
-# Create a new migration file
-npm run migrate:create -- add-new-change
-```
-
-> Run these commands from the `march-madness-tracker/` directory with `MONGODB_URI` set in your environment or `.env` file.
-
-## Development
-
-### Code Style
-
-This project uses ESLint and Prettier for code formatting:
-
-```bash
-# Run linter
-npm run lint
-
-# Fix linting issues
-npm run lint:fix
-```
-
-### Branch Strategy
-
-- `main`: Production-ready code
-- `develop`: Development branch
-- Feature branches: `feature/branch-name`
-
-## API Documentation
-
-API documentation is available at `/api-docs` when running the development server. The documentation includes:
-
-- User Authentication endpoints
-- Bracket management
-- Tournament updates
-- Leaderboard and scoring
-- Health check endpoints
-
-### Admin Endpoints
-
-Admin endpoints require JWT authentication. Include the token in the `Authorization` header:
-
-```
-Authorization: Bearer YOUR_JWT_TOKEN
-```
-
-#### Available Admin Endpoints
-
-**POST /api/admin/sync/bracket**
-- Manually trigger a full bracket sync from ESPN
-- Syncs all games from March 15 - April 10, 2026
-- Returns success message with timestamp
-
-**GET /api/admin/sync/status**
-- Get current sync status and schedule information
-- Shows last sync details
-
-**Example Usage:**
-
-```bash
-# Get your JWT token first (see ESPN Integration section)
-TOKEN="your-jwt-token-here"
-
-# Trigger manual sync
-curl -X POST http://localhost:3005/api/admin/sync/bracket \
-  -H "Authorization: Bearer $TOKEN" \
-  -H "Content-Type: application/json"
-
-# Check sync status
-curl -X GET http://localhost:3005/api/admin/sync/status \
-  -H "Authorization: Bearer $TOKEN"
-```
-
-## NCAA API Integration
-
-The application integrates with the NCAA's official API to provide real-time tournament updates:
-
-- Automatic game results updates with adaptive polling:
-  - More frequent updates during game hours (12 PM - 11 PM)
-  - Reduced polling during off-hours
-  - Configurable update intervals
-- Rate limiting protection
-- Exponential backoff for failed requests
-- Redis caching to minimize API calls
-
-## Data Sources
-
-**Important: The NCAA does not provide a public API for March Madness data.**
-
-This application supports multiple data source options:
-
-### 1. Mock Data (Development)
-
-For development and testing:
+**Local development** — create `.env` in `march-madness-tracker/`:
 
 ```env
-DATA_SOURCE_TYPE=mock
-```
+PORT=3000
+NODE_ENV=development
+MONGODB_URI=mongodb://localhost:27017/march-madness
+REDIS_URL=redis://localhost:6379
+JWT_SECRET=your-secret-key-min-32-chars
+JWT_EXPIRATION=3600
+LOG_LEVEL=info
 
-Use pre-populated sample tournament data. Ideal for development and testing.
-
-### 2. ESPN Unofficial API (Free, No Key Required) ⭐ **ACTIVE**
-
-ESPN provides unofficial endpoints that are currently integrated and working:
-
-```env
+# Data source: mock | espn | sportsradar | manual
 DATA_SOURCE_TYPE=espn
 ESPN_API_URL=https://site.api.espn.com/apis/site/v2/sports/basketball/mens-college-basketball/scoreboard
 ```
 
-**Note:** ESPN's API is unofficial and not guaranteed to remain available. Use at your own risk.
-
-#### ESPN Integration Features
-
-- **Automatic Daily Sync**: Runs every day at 6:00 AM to fetch latest game results
-- **Full Tournament Coverage**: Syncs all games from March 15 - April 10, 2026
-- **Manual Sync**: Admin endpoint available for on-demand bracket updates
-- **Smart Parsing**: Automatically extracts team info, scores, and round numbers
-
-#### Getting Started with ESPN Sync
-
-**Step 1: Start the Docker Containers**
+## Installation
 
 ```bash
-cd march-madness-tracker
+git clone https://github.com/jjesse/march-madness.git
+cd march-madness/march-madness-tracker
+npm install
+
+# Install frontend dependencies
+cd client && npm install && cd ..
+```
+
+## Running the Application
+
+### Docker (recommended)
+
+One command starts all four services — API, frontend, MongoDB, and Redis:
+
+```bash
 docker compose up -d
 ```
 
-The app will be available at `http://localhost:3005` (maps to internal port 4000).
+| Service | URL |
+|---------|-----|
+| React frontend | http://localhost:5173 |
+| Express API | http://localhost:3005 |
+| Swagger UI | http://localhost:3005/api-docs |
 
-**Step 2: Register a User and Get JWT Token**
+The frontend Vite proxy resolves `/api` calls to the `app` container internally — no manual configuration needed.
 
-```bash
-# Register a new user
-curl -X POST http://localhost:3005/api/users/register \
-  -H "Content-Type: application/json" \
-  -d '{
-    "email": "admin@example.com",
-    "password": "SecurePass123!",
-    "username": "admin"
-  }'
-
-# Login to get JWT token
-TOKEN=$(curl -X POST http://localhost:3005/api/users/login \
-  -H "Content-Type: application/json" \
-  -d '{
-    "email": "admin@example.com",
-    "password": "SecurePass123!"
-  }' | jq -r '.token')
-
-echo "Your token: $TOKEN"
-```
-
-**Step 3: Manually Trigger Bracket Sync (Optional)**
+**First-time setup:** after the containers are healthy, seed the bracket data:
 
 ```bash
-# Trigger full bracket sync
+# 1. Register at http://localhost:5173/register
+# 2. Log in and copy your token, then run:
 curl -X POST http://localhost:3005/api/admin/sync/bracket \
-  -H "Authorization: Bearer $TOKEN" \
-  -H "Content-Type: application/json" | jq .
-
-# Response:
-# {
-#   "success": true,
-#   "message": "Bracket sync completed successfully",
-#   "timestamp": "2026-03-17T15:30:00.000Z"
-# }
+  -H "Authorization: Bearer YOUR_TOKEN"
 ```
 
-**Step 4: Verify Synced Data**
+**Useful Docker commands:**
 
 ```bash
-# Check database stats
-docker exec march-madness-tracker-mongo-1 mongo march-madness --quiet --eval "
-print('Tournaments:', db.tournaments.count());
-print('Games:', db.games.count());
-print('Teams:', db.teams.count());
-"
-
-# Expected output:
-# Tournaments: 1
-# Games: 69
-# Teams: 69
+docker compose logs -f app       # Stream API logs
+docker compose logs -f frontend  # Stream frontend logs
+docker compose down              # Stop all services
+docker compose build app         # Rebuild API image after code changes
 ```
 
-#### Automated Sync Schedule
-
-The application automatically syncs bracket data daily at 6:00 AM. No manual intervention required during tournament season. Check logs:
+### Local development (without Docker)
 
 ```bash
-docker logs march-madness-tracker-app-1 -f
+# Terminal 1: API server
+npm run dev
+
+# Terminal 2: React frontend
+cd client && npm run dev
 ```
 
-### 3. SportsRadar API (Commercial)
+### Other backend scripts
 
-Professional-grade sports data with official NCAA tournament coverage:
-
-1. Sign up at [SportsRadar](https://developer.sportradar.com/)
-2. Subscribe to NCAA Men's Basketball coverage
-3. Configure:
-
-   ```env
-   DATA_SOURCE_TYPE=sportsradar
-   SPORTSRADAR_API_KEY=your-api-key-here
-   SPORTSRADAR_API_URL=https://api.sportradar.us/ncaamb/trial/v7/en
-   NCAA_MAX_REQUESTS_PER_MINUTE=30
-   NCAA_CACHE_TTL=300
-   ```
-
-### 4. Manual Data Entry
-
-For complete control:
-
-```env
-DATA_SOURCE_TYPE=manual
+```bash
+npm run build          # Compile TypeScript
+npm start              # Run compiled output
+npm run lint           # ESLint
+npm run lint:fix       # Auto-fix lint issues
+npm test               # Jest backend tests
+npm run migrate:up     # Apply pending DB migrations
+npm run migrate:down   # Roll back last migration
+npm run docs           # Generate TypeDoc
 ```
 
-Manually seed and update game results through admin endpoints.
+### Frontend scripts (run from `client/`)
 
-### Alternative Data Sources
+```bash
+npm run dev            # Vite dev server on :5173 (proxies /api to :3005)
+npm run build          # Production build
+npm run lint           # ESLint + jsx-a11y
+npm test               # Vitest unit tests
+npm run test:watch     # Vitest in watch mode
+```
 
-- **The Sports DB** - Free API with limited tournament data
-- **Web Scraping** - NCAA.com or ESPN.com (check terms of service)
-- **Odds Provider APIs** - Many sports betting APIs include NCAA data
+## Database Migrations
 
-The system will automatically:
+`migrate-mongo` manages core indexes and the seeded tournament structure.
 
-- Cache responses for 5 minutes
-- Limit API requests based on provider limits
-- Update more frequently during tournament hours
-- Handle rate limits and errors gracefully
+```bash
+# From march-madness-tracker/ with MONGODB_URI set
+npm run migrate:up      # Apply all pending migrations
+npm run migrate:down    # Roll back most recent migration
+npm run migrate:create -- add-my-change   # New migration file
+```
 
-## Bracket Comparison Features
+## API Reference
 
-The application now supports:
+Full interactive docs at **http://localhost:3005/api-docs** (Swagger UI).
 
-- Real-time comparison of user picks against official results
-- Pick status tracking (correct/incorrect/pending)
-- Detailed pick accuracy statistics
-- Historical pick performance tracking
+### Auth
 
-## Running Tests
+| Method | Path | Auth | Description |
+|--------|------|------|-------------|
+| POST | `/api/users/register` | None | Create account |
+| POST | `/api/users/login` | None | Sign in, returns JWT |
+| GET | `/api/users/profile` | JWT | Get own profile |
+| PUT | `/api/users/profile` | JWT | Update profile |
+| PUT | `/api/users/password` | JWT | Change password |
 
-To run the unit tests, use:
+### Brackets
+
+| Method | Path | Auth | Description |
+|--------|------|------|-------------|
+| GET | `/api/brackets` | JWT | List my brackets |
+| POST | `/api/brackets` | JWT | Create bracket |
+| GET | `/api/brackets/:id` | JWT | Get bracket + games |
+| PUT | `/api/brackets/:id` | JWT | Update bracket + picks |
+| DELETE | `/api/brackets/:id` | JWT | Delete bracket |
+
+**Saving picks** — include a `games` array in the PUT body:
+
+```json
+{
+  "name": "My Bracket",
+  "games": [
+    { "_id": "<game-mongo-id>", "id": "<game-id>", "userPick": "Team Name" }
+  ]
+}
+```
+
+Picks for games that are `in progress` or `completed` are rejected with a 400 error.
+
+### Scoreboard
+
+| Method | Path | Auth | Description |
+|--------|------|------|-------------|
+| GET | `/api/scoreboard?year=2026` | None | Full leaderboard |
+| GET | `/api/scoreboard/user` | JWT | My score history |
+
+### Admin
+
+All admin endpoints require JWT.
+
+| Method | Path | Description |
+|--------|------|-------------|
+| POST | `/api/admin/sync/bracket` | Trigger ESPN bracket sync |
+| GET | `/api/admin/sync/status` | Last sync status + schedule |
+
+```bash
+TOKEN="your-jwt-token"
+
+# Trigger sync
+curl -X POST http://localhost:3005/api/admin/sync/bracket \
+  -H "Authorization: Bearer $TOKEN"
+
+# Check status
+curl http://localhost:3005/api/admin/sync/status \
+  -H "Authorization: Bearer $TOKEN"
+```
+
+## ESPN Integration
+
+The application integrates with ESPN's unofficial scoreboard API:
+
+- **Automatic daily sync** at 6:00 AM via `node-cron`
+- **Manual sync** via the admin endpoint above
+- Covers all games March 15 – April 10, 2026
+- Smart parsing extracts team names, scores, round numbers, and game status
+- Redis caching reduces redundant API calls
+
+> ESPN's API is unofficial and may change without notice.
+
+## Data Sources
+
+| Option | `DATA_SOURCE_TYPE` | Notes |
+|--------|-------------------|-------|
+| ESPN (default) | `espn` | Free, unofficial, currently active |
+| Mock | `mock` | Pre-seeded data for development |
+| SportsRadar | `sportsradar` | Commercial, requires API key |
+| Manual | `manual` | Seed via admin endpoints |
+
+## Testing
+
+### Backend
 
 ```bash
 npm test
 ```
 
+Jest tests in `tests/` cover route behaviour, pick locking, and scoring logic.
+
+### Frontend
+
+```bash
+cd client && npm test
+```
+
+Vitest + Testing Library tests cover:
+- Core UI components (`AlertMessage`, `AuthCard`, `LeaderboardTable`, `BracketMatchupCard`, `ProtectedRoute`)
+- Auth pages — login success/failure, registration validation and password mismatch
+- Navigation — authenticated vs. public nav, logout
+- Protected routing — redirect when unauthenticated, spinner during load, content when authenticated
+- Page-level integration — bracket pick selection + save flow, leaderboard load and year filter
+
+## Security
+
+- **Helmet** — security headers on all responses
+- **Rate limiting** — per-IP limits on auth and API routes
+- **Input validation** — Joi schemas on all mutating endpoints
+- **bcrypt** — password hashing (cost factor 12)
+- **JWT** — short-lived tokens; expired tokens detected and cleared client-side
+- **XSS protection** — safe error messages; no raw HTML rendered from API data
+- **Lock enforcement** — pick edits rejected server-side once a game is no longer `not started`
+
 ## Troubleshooting
 
-Common issues and solutions:
+**Build fails**
+```bash
+rm -rf dist node_modules && npm install
+```
 
-- **Build fails**: Clear the dist folder and node_modules
+**Frontend can't reach the API**
+The Vite dev server proxies `/api` requests to `http://localhost:3000` by default. Set `VITE_API_PROXY_TARGET` in `client/.env` to override:
+```env
+VITE_API_PROXY_TARGET=http://localhost:3000
+```
 
-  ```bash
-  rm -rf dist node_modules
-  npm install
-  ```
+**MongoDB / Redis connection errors**
+```bash
+docker compose ps          # Check containers are running
+docker compose logs mongo  # Inspect MongoDB logs
+docker compose logs app    # Inspect API logs
+```
 
-- **Tests timeout**: Increase the timeout in jest.config.js
+**Sync not picking up new games**
+Trigger a manual sync and check the app log for errors from the ESPN API:
+```bash
+docker logs march-madness-tracker-app-1 --tail 50
+```
 
 ## Contributing
 
-Contributions are welcome! Please open an issue or submit a pull request for any enhancements or bug fixes.
+Contributions are welcome! Please open an issue or submit a pull request.
+
+- Branch from `feature/` for new work
+- Run `npm run lint` and `npm test` before opening a PR
+- Frontend changes: also run `cd client && npm run lint && npm test`
 
 ## License
 
 This project is licensed under the MIT License.
-
-## Setup
-
-### Prerequisites
-
-- Node.js
-- Docker and Docker Compose
-
-### Installation
-
-1. Clone the repository:
-
-    ```bash
-    git clone https://github.com/yourusername/march-madness-tracker.git
-    cd march-madness-tracker
-    ```
-
-2. Install dependencies:
-
-    ```bash
-    npm install
-    ```
-
-3. Create a `.env` file in the root directory and add the following environment variables:
-
-    ```env
-    NODE_ENV=development
-    PORT=3000
-    MONGODB_URI=mongodb://localhost:27017/march-madness
-    ```
-
-### Running the Application
-
-#### Using Node.js
-
-1. Start the application:
-
-    ```bash
-    npm start
-    ```
-
-2. Access the application at `http://localhost:3000`.
-
-#### Using Docker
-
-The application uses Docker Compose with three services:
-- **app**: Node.js application (port 3005 → 4000)
-- **mongo**: MongoDB 4.4 database (port 27017)
-- **redis**: Redis 7 cache (port 6379)
-
-1. Build and start all containers:
-
-    ```bash
-    docker compose up -d
-    ```
-
-2. Access the application at `http://localhost:3005`.
-
-3. View logs:
-
-    ```bash
-    docker logs march-madness-tracker-app-1 -f
-    ```
-
-4. Stop containers:
-
-    ```bash
-    docker compose down
-    ```
-
-5. Rebuild after code changes:
-
-    ```bash
-    docker compose build app
-    docker compose up -d
-    ```
-
-### Testing
-
-Run tests using Jest:
-
-```bash
-npm test
-```
-
-### Linting
-
-Lint the code using ESLint:
-
-```bash
-npm run lint
-```
-
-### Documentation
-
-Generate API documentation using Typedoc:
-
-```bash
-npm run docs
-```
-
-## Dependencies
-
-- express
-- typescript
-- dotenv
-- cors
-- jsonwebtoken
-- bcryptjs
-- mongoose
-- passport
-- passport-jwt
-- ioredis
-- express-rate-limit
-- winston
-- class-validator
-- helmet
-- swagger-ui-express
-- swagger-jsdoc
-- migrate-mongo
-- class-transformer
-- prom-client
-- joi
-- axios
-- limiter
-- compression
-- connect-timeout
-- node-cron              # Job scheduler for daily bracket sync
-
-## Dev Dependencies
-
-- ts-node
-- jest
-- @types/jest
-- @types/node
-- @types/node-cron       # Types for node-cron
-- nodemon
-- eslint
-- @typescript-eslint/eslint-plugin
-- @typescript-eslint/parser
-- typedoc
-- @types/express
-- @types/cors
-- @types/jsonwebtoken
-- @types/bcryptjs
-- @types/passport
-- @types/passport-jwt
-- @types/mongoose
-- @types/ioredis
-- supertest
-- @types/prom-client
-- jest-mock-extended
-- @types/compression
-- @types/connect-timeout
